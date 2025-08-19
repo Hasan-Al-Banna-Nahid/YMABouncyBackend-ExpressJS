@@ -27,10 +27,10 @@ router.post('/reset-password/:token', resetPasswordHandler);
 // Protected routes (require authentication)
 router.use(protectRoute);
 
-router.patch('/update-password', updatePasswordHandler);
-router.get('/me', getMe);
-router.patch('/update-me', updateMe);
-router.delete('/delete-me', deleteMe);
+router.patch("/update-password", updatePasswordHandler);
+router.get("/me", getMe);
+router.patch("/update-me", updateMe);
+router.delete("/delete-me", deleteMe);
 
 // Admin only routes
 router.use(restrictTo('admin'));

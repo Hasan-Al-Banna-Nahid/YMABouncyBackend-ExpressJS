@@ -14,11 +14,11 @@ import { protectRoute, restrictTo } from '../controllers/auth.controller';
 const router = express.Router();
 
 // Public routes
-router.get('/', getProductsHandler);
-router.get('/featured', getFeaturedProductsHandler);
-router.get('/related/:productId', getRelatedProductsHandler);
-router.get('/search', searchProductsHandler);
-router.get('/:id', getProductHandler);
+router.get("/", getProductsHandler);
+router.get("/featured", getFeaturedProductsHandler);
+router.get("/related/:productId", getRelatedProductsHandler);
+router.get("/search", searchProductsHandler);
+router.get("/:id", getProductHandler);
 
 // Protect all routes after this middleware
 router.use(protectRoute);

@@ -20,14 +20,14 @@ router.use(protectRoute);
 // Admin only routes
 router.use(restrictTo('admin'));
 
-router.post('/', createInventoryItemHandler);
-router.get('/', getInventoryItemsHandler);
-router.get('/available', getAvailableInventoryHandler);
-router.get('/booked', getBookedInventoryHandler);
-router.get('/check-availability', checkInventoryAvailabilityHandler);
-router.get('/release-expired', releaseExpiredCartItemsHandler);
-router.get('/:id', getInventoryItemHandler);
-router.patch('/:id', updateInventoryItemHandler);
-router.delete('/:id', deleteInventoryItemHandler);
+router.post("/", createInventoryItemHandler);
+router.get("/", getInventoryItemsHandler);
+router.get("/available", getAvailableInventoryHandler);
+router.get("/booked", getBookedInventoryHandler);
+router.get("/check-availability", checkInventoryAvailabilityHandler);
+router.get("/release-expired", releaseExpiredCartItemsHandler);
+router.get("/:id", getInventoryItemHandler);
+router.patch("/:id", updateInventoryItemHandler);
+router.delete("/:id", deleteInventoryItemHandler);
 
 export default router;
