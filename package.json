@@ -24,7 +24,6 @@
     "@types/cors": "^2.8.19",
     "@types/dotenv": "^6.1.1",
     "@types/http-errors": "^2.0.5",
-    "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.96",
     "@types/morgan": "^1.9.10",
     "@types/passport": "^1.0.17",

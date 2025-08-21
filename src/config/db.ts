@@ -6,7 +6,9 @@ import logger from '../utils/logger';
 
 const connectDB = async () => {
     try {
-        await mongoose.connect(config.mongo.uri);
+        await mongoose.connect(config.mongo.uri,{
+        dbName: 'YMA', // optional override (ensures YMA even if URI has /test)
+    });
         logger.info('MongoDB connected successfully');
     } catch (error) {
         logger.error('MongoDB connection error:', error);

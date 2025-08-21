@@ -32,6 +32,30 @@ declare global {
 }
 
 export {}; // ensure this file is treated as a module
+declare namespace NodeJS {
+    interface ProcessEnv {
+        JWT_SECRET: string;
+        JWT_EXPIRES_IN?: string;
+        JWT_REFRESH_SECRET: string;
+        JWT_REFRESH_EXPIRES_IN?: string;
+        expiresIn:number;
+        NODE_ENV?: 'development' | 'production' | 'test';
+        PORT?: string;
+
+        MONGO_URI: string;
+
+        JWT_SECRET: string;
+        JWT_EXPIRES_IN?: string;
+
+        JWT_REFRESH_SECRET: string;
+        JWT_REFRESH_EXPIRES_IN?: string;
+
+        BCRYPT_SALT_ROUNDS?: string;
+
+        CORS_ORIGIN?: string;
+        FRONTEND_URL?: string;
+    }
+}
 
 
 import { Secret } from 'jsonwebtoken';

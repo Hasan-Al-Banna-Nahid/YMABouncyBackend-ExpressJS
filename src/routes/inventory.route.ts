@@ -10,7 +10,7 @@ import {
     checkInventoryAvailabilityHandler,
     releaseExpiredCartItemsHandler,
 } from '../controllers/inventory.controller';
-import { protectRoute, restrictTo } from '../controllers/auth.controller';
+import { protectRoute, restrictTo } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 

@@ -1,64 +1,32 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import ApiError from '../utils/apiError';
-import { IUser } from '../interfaces/user.interface';
-import User from '../models/user.model';
+import { Request, Response, NextFunction } from "express";
+import asyncHandler from "../utils/asyncHandler";
+import ApiError from "../utils/apiError";
+import { IUser } from "../interfaces/user.interface";
+import { protect as verifyAccessToken } from "../services/auth.service";
 
-// Extend Express Request interface to include user
-interface AuthRequest extends Request {
-    user?: IUser;
-}
+export type AuthenticatedRequest = Request & { user: IUser };
 
-export const protect = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-    try {
-        // 1) Getting token and check if it's there
-        let token: string | undefined;
-        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-            token = req.headers.authorization.split(' ')[1];
-        } else if (req.cookies && req.cookies.jwt) {
-            token = req.cookies.jwt;
+export const protectRoute = asyncHandler(async (req: Request, _res: Response, next: NextFunction) => {
+    const headerToken = req.headers.authorization?.startsWith("Bearer ")
+        ? req.headers.authorization.split(" ")[1]
+        : undefined;
+
+    const cookieToken = (req as any).cookies?.accessToken as string | undefined;
+
+    const token = headerToken || cookieToken;
+    if (!token) throw new ApiError("No token provided", 401);
+
+    const currentUser = await verifyAccessToken(token); // uses JWT_SECRET and checks user
+    (req as AuthenticatedRequest).user = currentUser;
+    next();
+});
+
+export const restrictTo = (...roles: Array<IUser["role"]>) => {
+    return (req: Request, _res: Response, next: NextFunction) => {
+        const aReq = req as Partial<AuthenticatedRequest>;
+        if (!aReq.user || !roles.includes(aReq.user.role)) {
+            throw new ApiError("Unauthorized", 403);
         }
-
-        if (!token) {
-            throw new ApiError('You are not logged in! Please log in to get access.', 401);
-        }
-
-        // 2) Verification token
-        const jwtSecret = process.env.JWT_SECRET;
-        if (!jwtSecret) {
-            throw new ApiError('JWT secret is not configured', 500);
-        }
-
-        const decoded = jwt.verify(token, jwtSecret) as { id: string; iat: number };
-
-        // 3) Check if user still exists
-        const currentUser = await User.findById(decoded.id);
-        if (!currentUser) {
-            throw new ApiError('The user belonging to this token no longer exists.', 401);
-        }
-
-        // 4) Check if user changed password after the token was issued
-        if (currentUser.passwordChangedAt && currentUser.changedPasswordAfter(decoded.iat)) {
-            throw new ApiError('User recently changed password! Please log in again.', 401);
-        }
-
-        // GRANT ACCESS TO PROTECTED ROUTE
-        req.user = currentUser;
-        next();
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const restrictTo = (...roles: string[]) => {
-    return (req: AuthRequest, res: Response, next: NextFunction): void => {
-        if (!req.user || !req.user.role) {
-            throw new ApiError('User not found or role not assigned', 404);
-        }
-        if (!roles.includes(req.user.role)) {
-            throw new ApiError('You do not have permission to perform this action', 403);
-        }
-
         next();
     };
 };

@@ -4,6 +4,7 @@ import bookingRouter from './booking.route';
 import inventoryRouter from './inventory.route';
 import invoiceRouter from './invoice.route';
 import productRouter from './product.route';
+import adminRoutes from "./admin.routes";
 
 const router = express.Router();
 
@@ -12,5 +13,6 @@ router.use('/api/v1/bookings', bookingRouter);
 router.use('/api/v1/inventory', inventoryRouter);
 router.use('/api/v1/invoices', invoiceRouter);
 router.use('/api/v1/products', productRouter);
+router.use('/api/v1/admin', adminRoutes);
 
 export default router;

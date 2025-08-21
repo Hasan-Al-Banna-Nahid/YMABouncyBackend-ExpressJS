@@ -2,25 +2,24 @@ import express from 'express';
 import {
     register,
     loginUser,
-    googleLogin,
-    googleLoginCallback,
+    refreshToken,
     forgotPasswordHandler,
     resetPasswordHandler,
     updatePasswordHandler,
     protectRoute,
-    restrictTo,
     getMe,
     updateMe,
     deleteMe,
+    logout
 } from '../controllers/auth.controller';
-
+import {restrictTo} from "../middlewares/auth.middleware"
 const router = express.Router();
 
 // Public routes
 router.post('/register', register);
 router.post('/login', loginUser);
-router.get('/google', googleLogin);
-router.get('/google/callback', googleLoginCallback);
+router.post('/logout', logout);
+router.post('/refresh-token', refreshToken);
 router.post('/forgot-password', forgotPasswordHandler);
 router.post('/reset-password/:token', resetPasswordHandler);
 

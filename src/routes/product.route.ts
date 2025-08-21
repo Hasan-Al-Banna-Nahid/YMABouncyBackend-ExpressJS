@@ -9,7 +9,7 @@ import {
     getRelatedProductsHandler,
     searchProductsHandler,
 } from '../controllers/product.controller';
-import { protectRoute, restrictTo } from '../controllers/auth.controller';
+import { protectRoute, restrictTo } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
