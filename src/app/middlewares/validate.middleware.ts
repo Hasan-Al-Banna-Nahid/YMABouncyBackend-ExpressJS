@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { AnyZodObject, ZodEffects } from 'zod';
 import ApiError from '../utils/apiError';
 
-const validate = (schema: AnyZodObject | ZodEffects<AnyZodObject>) =>
+const validate = (schema:any) =>
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             await schema.parseAsync({
@@ -12,7 +11,7 @@ const validate = (schema: AnyZodObject | ZodEffects<AnyZodObject>) =>
             });
             return next();
         } catch (error) {
-            return next(new ApiError('Validation failed', 400, error.errors));
+            return next(new ApiError('Validation failed', 400, (error as any).errors));
         }
     };
 

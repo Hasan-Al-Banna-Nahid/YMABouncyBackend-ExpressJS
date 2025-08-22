@@ -1,0 +1,20 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const auth_route_1 = __importDefault(require("./auth.route"));
+const booking_route_1 = __importDefault(require("./booking.route"));
+const inventory_route_1 = __importDefault(require("./inventory.route"));
+const invoice_route_1 = __importDefault(require("./invoice.route"));
+const product_route_1 = __importDefault(require("./product.route"));
+const admin_routes_1 = __importDefault(require("./admin.routes"));
+const router = express_1.default.Router();
+router.use('/api/v1/auth', auth_route_1.default);
+router.use('/api/v1/bookings', booking_route_1.default);
+router.use('/api/v1/inventory', inventory_route_1.default);
+router.use('/api/v1/invoices', invoice_route_1.default);
+router.use('/api/v1/products', product_route_1.default);
+router.use('/api/v1/admin', admin_routes_1.default);
+exports.default = router;
