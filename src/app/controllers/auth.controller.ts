@@ -220,26 +220,106 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
 
 /** PATCH /auth/me */
 // src/controllers/auth.controller.ts
+// controllers/auth.controller.ts
+
 export const updateMe = asyncHandler(async (req: Request, res: Response) => {
     const aReq = req as AuthenticatedRequest;
     if (!aReq.user) throw new ApiError("User not authenticated", 401);
 
-    const { name, email } = req.body;
-    const photo = req.file; // Multer adds the file to req.file
+    // ----------- Parse inputs -----------
+    const { name, email, currentPassword, newPassword, newPasswordConfirm } = req.body as {
+        name?: string;
+        email?: string;
+        currentPassword?: string;
+        newPassword?: string;
+        newPasswordConfirm?: string;
+    };
+    const file = req.file; // Multer memoryStorage -> req.file.buffer
 
+    // ----------- Handle photo (optional) -----------
     let photoUrl: string | undefined;
-    if (photo) {
-        photoUrl = await uploadToCloudinary(photo);
+    if (file) {
+        // If you want stable public_id per user, pass aReq.user.id
+        photoUrl = await uploadToCloudinary(file);
+        // cache-bust the url so clients see it immediately
+        const ts = Date.now();
+        photoUrl = `${photoUrl}${photoUrl.includes("?") ? "&" : "?"}t=${ts}`;
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-        aReq.user.id,
-        { name, email, photo: photoUrl || aReq.user.photo }, // Preserve existing photo if no new one
-        { new: true, runValidators: true }
-    );
-    if (!updatedUser) throw new ApiError("User not found", 404);
+    // ----------- Build partial update for profile fields -----------
+    // (Only include fields that were provided; don't overwrite with undefined)
+    const profileUpdate: Record<string, any> = {};
+    if (typeof name !== "undefined") profileUpdate.name = name;
 
-    ApiResponse(res, 200, "User updated successfully", { user: sanitizeUser(updatedUser) });
+    if (typeof email !== "undefined") {
+        const normalizedEmail = String(email).trim().toLowerCase();
+        // Ensure email not taken by someone else
+        const exists = await User.findOne({ email: normalizedEmail, _id: { $ne: aReq.user.id } });
+        if (exists) throw new ApiError("Email already in use", 400);
+        profileUpdate.email = normalizedEmail;
+    }
+
+    if (typeof photoUrl !== "undefined") {
+        profileUpdate.photo = photoUrl;
+    }
+
+    // We will update profile first, *unless* we need to change password as well.
+    // (Doing profile first or after password doesn’t matter; keeping it simple.)
+
+    // ----------- If password change requested, validate & change -----------
+    const wantsPasswordChange =
+        typeof currentPassword !== "undefined" ||
+        typeof newPassword !== "undefined" ||
+        typeof newPasswordConfirm !== "undefined";
+
+    let userDoc = await User.findById(aReq.user.id).select("+password +refreshTokenHash +refreshTokenExpiresAt");
+    if (!userDoc) throw new ApiError("User not found", 404);
+
+    // Apply profile updates to the user doc now (so single save covers both)
+    Object.assign(userDoc, profileUpdate);
+
+    let rotatedTokens: { accessToken: string; refreshToken: string } | undefined;
+
+    if (wantsPasswordChange) {
+        if (!currentPassword || !newPassword || !newPasswordConfirm) {
+            throw new ApiError("To change password, provide currentPassword, newPassword and newPasswordConfirm.", 400);
+        }
+
+        if (!userDoc.password) throw new ApiError("User has no password set", 400);
+
+        const ok = await userDoc.correctPassword(currentPassword, userDoc.password);
+        if (!ok) throw new ApiError("Your current password is wrong.", 401);
+
+        if (newPassword !== newPasswordConfirm) throw new ApiError("Passwords do not match", 400);
+
+        // Set new password -> pre('save') will hash it
+        userDoc.password = newPassword;
+
+        // Invalidate any existing refresh token
+        userDoc.refreshTokenHash = undefined as any;
+        userDoc.refreshTokenExpiresAt = undefined as any;
+
+        // Save once to run validators + hashing
+        await userDoc.save();
+
+        // Rotate tokens after password change
+        rotatedTokens = await issueTokens(userDoc);
+        setAuthCookies(res, rotatedTokens.accessToken, rotatedTokens.refreshToken);
+    } else {
+        // No password change: just persist profile changes if there are any
+        if (Object.keys(profileUpdate).length > 0) {
+            await userDoc.save({ validateModifiedOnly: true });
+        }
+    }
+
+    // Re-fetch a clean user to return (or sanitize userDoc)
+    const safe = sanitizeUser(userDoc);
+
+    ApiResponse(res, 200, "User updated successfully", {
+        user: safe,
+        // Only include tokens if password was rotated; otherwise omit for clarity
+        ...(rotatedTokens ? { tokens: rotatedTokens } : {}),
+    });
 });
 /** DELETE /auth/me (soft delete + return updated user) */
 export const deleteMe = asyncHandler(async (req: Request, res: Response) => {
