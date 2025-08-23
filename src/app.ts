@@ -7,7 +7,6 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
-import cors from "cors";
 
 const ALLOWED_ORIGINS = [
     "http://localhost:3000",
