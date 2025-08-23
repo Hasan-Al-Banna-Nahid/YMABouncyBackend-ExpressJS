@@ -6,20 +6,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const http_1 = __importDefault(require("http"));
 const app_1 = __importDefault(require("./app"));
 const config_1 = require("./app/config/config");
-const logger_1 = __importDefault(require("./app/utils/logger"));
+const db_1 = __importDefault(require("./app/config/db"));
 const server = http_1.default.createServer(app_1.default);
 server.listen(config_1.config.port, () => {
-    logger_1.default.info(`Server running on port ${config_1.config.port}`);
+    console.log(`Server running on port ${config_1.config.port}`);
 });
+// 4) DATABASE CONNECTION
+(0, db_1.default)();
 process.on('unhandledRejection', (err) => {
-    logger_1.default.error('Unhandled Rejection:', err);
+    console.log('Unhandled Rejection:', err);
     server.close(() => {
         process.exit(1);
     });
 });
 process.on('SIGTERM', () => {
-    logger_1.default.info('SIGTERM received. Shutting down gracefully');
+    console.log('SIGTERM received. Shutting down gracefully');
     server.close(() => {
-        logger_1.default.info('Process terminated');
+        console.log('Process terminated');
     });
 });

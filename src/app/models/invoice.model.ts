@@ -80,7 +80,7 @@ const invoiceSchema = new Schema<IInvoice>(
 // Indexes
 invoiceSchema.index({ booking: 1 });
 invoiceSchema.index({ user: 1 });
-invoiceSchema.index({ invoiceNumber: 1 }, { unique: true });
+// invoiceSchema.index({ invoiceNumber: 1 });
 
 // Auto-populate booking and user
 invoiceSchema.pre(/^find/, function (this: mongoose.Query<any, any>, next) {

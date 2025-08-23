@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { errorConverter, errorHandler } from './app/middlewares/error.middleware';
 import router from './app/routes';
-import connectDB from './app/config/db';
+import cookieParser from "cookie-parser";
 
 const app = express();
 
@@ -11,7 +11,7 @@ const app = express();
 // Body parser, reading data from body into req.body
 app.use(express.json({ limit: '1000kb' }));
 app.use(express.urlencoded({ extended: true, limit: '1000kb' }));
-
+app.use(cookieParser());
 
 
 
@@ -29,7 +29,6 @@ app.use(router);
 app.use(errorConverter);
 app.use(errorHandler);
 
-// 4) DATABASE CONNECTION
-connectDB();
+
 
 export default app;

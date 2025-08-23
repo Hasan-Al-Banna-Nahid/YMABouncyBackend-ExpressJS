@@ -15,7 +15,7 @@ const logger = winston_1.default.createLogger({
     ],
 });
 const requestLogger = (req, res, next) => {
-    logger.info({
+    console.log({
         method: req.method,
         url: req.originalUrl,
         ip: req.ip,
@@ -25,7 +25,7 @@ const requestLogger = (req, res, next) => {
 };
 exports.requestLogger = requestLogger;
 const errorLogger = (err, req, res, next) => {
-    logger.error({
+    console.log({
         status: err.statusCode || 500,
         message: err.message,
         stack: err.stack,

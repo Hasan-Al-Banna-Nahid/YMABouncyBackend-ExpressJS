@@ -11,7 +11,8 @@ import { protectRoute, restrictTo } from "../middlewares/auth.middleware";
 
 const router = Router();
 
-router.use(protectRoute, restrictTo("admin"));
+router.use(protectRoute);
+router.use(restrictTo("admin"));
 
 router.get("/users", listUsers);
 router.get("/users/:id", getUser);

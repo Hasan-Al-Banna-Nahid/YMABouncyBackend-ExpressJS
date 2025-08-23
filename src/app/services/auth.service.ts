@@ -138,7 +138,7 @@ export const protect = async (token: string): Promise<IUser> => {
         throw new ApiError("Invalid token payload.", 401);
     }
 
-    const currentUser = await User.findById(decoded.id);
+    const currentUser = await User.findById(decoded.id).select("+role"); // Explicitly include role
     if (!currentUser) throw new ApiError("The user belonging to this token does no longer exist.", 401);
 
     if (currentUser.active === false) {
