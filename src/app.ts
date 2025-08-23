@@ -7,35 +7,33 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
-// Enable CORS
+import cors from "cors";
 
-const allowedOrigins = [
+const ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://yma-three.vercel.app",          // your frontend (prod) if any
+    "https://yma-eight.vercel.app",          // your API origin itself (ok to include)
 ];
 
-app.use(
-    cors({
-        origin(origin, cb) {
-            // allow mobile apps / curl (no origin)
-            if (!origin) return cb(null, true);
-            if (allowedOrigins.includes(origin)) return cb(null, true);
-            return cb(new Error(`CORS: ${origin} not allowed`));
-        },
-        credentials: true, // <-- needed if you send cookies
-        methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-        allowedHeaders: [
-            "Content-Type",
-            "Authorization",
-            "X-Requested-With",
-            "Accept",
-        ],
-        exposedHeaders: ["Content-Length", "Content-Range"],
-    })
-);
+const corsOptions: cors.CorsOptions = {
+    origin(origin, cb) {
+        // allow curl / server-to-server where Origin is undefined
+        if (!origin) return cb(null, true);
+        cb(null, ALLOWED_ORIGINS.includes(origin));
+    },
+    credentials: true,                        // <— required for cookies
+    methods: ["GET","HEAD","POST","PUT","PATCH","DELETE","OPTIONS"],
+    allowedHeaders: ["Content-Type","Authorization","Accept"],
+    exposedHeaders: ["Content-Length","Content-Range"],
+    maxAge: 86400,                            // cache preflight for a day
+};
 
-// make sure preflight passes quickly
-app.options("*", cors());
+// CORS *before* body parsers & routes
+app.use(cors(corsOptions));
+// Make sure preflights succeed for every path
+app.options("*", cors(corsOptions));
+
 
 // Body parser, reading data from body into req.body
 app.use(express.json({ limit: '100000kb' }));
