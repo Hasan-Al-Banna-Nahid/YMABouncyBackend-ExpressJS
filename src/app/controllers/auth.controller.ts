@@ -20,16 +20,20 @@ type AuthenticatedRequest = Request & { user: IUser };
 
 const setAuthCookies = (res: Response, accessToken: string, refreshToken: string) => {
     const isProd = process.env.NODE_ENV === "production";
+
     res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        secure: isProd,
-        sameSite: "lax",
-        maxAge: 1000 * 60 * 60, // up to you; JWT controls expiry anyway
+        secure: isProd,               // must be true when SameSite=None on HTTPS
+        sameSite: isProd ? "none" : "lax", // dev can be lax on localhost
+        path: "/",                    // be explicit
+        maxAge: 1000 * 60 * 60,       // 1h
     });
+
     res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: isProd,
-        sameSite: "lax",
+        sameSite: isProd ? "none" : "lax",
+        path: "/",
         maxAge: 1000 * 60 * 60 * 24 * 30, // 30d
     });
 };
