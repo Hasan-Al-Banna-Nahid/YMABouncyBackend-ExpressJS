@@ -7,7 +7,9 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
-
+// Enable CORS
+app.use(cors());
+app.options('*', cors());
 // Body parser, reading data from body into req.body
 app.use(express.json({ limit: '100000kb' }));
 app.use(express.urlencoded({ extended: true, limit: '100000kb' }));
@@ -15,9 +17,7 @@ app.use(cookieParser());
 
 
 
-// Enable CORS
-app.use(cors());
-app.options('*', cors());
+
 
 // 2) ROUTES
 app.get("/",(req,res)=>{
