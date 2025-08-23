@@ -30,7 +30,7 @@ const userSchema = new mongoose_1.default.Schema({
         },
     },
     photo: String,
-    role: { type: String, enum: ['user', 'admin'], default: 'user', required: true, index: true },
+    role: { type: String, enum: ['user', 'admin'], default: 'user', required: true, index: true, select: false },
     password: { type: String, minlength: 8, select: false },
     passwordChangedAt: { type: Date, index: true },
     passwordResetToken: String,

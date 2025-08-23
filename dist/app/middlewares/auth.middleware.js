@@ -12,7 +12,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.restrictTo = exports.protectRoute = void 0;
+exports.protectRoute = void 0;
+exports.restrictTo = restrictTo;
 const asyncHandler_1 = __importDefault(require("../utils/asyncHandler"));
 const apiError_1 = __importDefault(require("../utils/apiError"));
 const auth_service_1 = require("../services/auth.service");
@@ -25,11 +26,12 @@ exports.protectRoute = (0, asyncHandler_1.default)((req, _res, next) => __awaite
     const token = headerToken || cookieToken;
     if (!token)
         throw new apiError_1.default("No token provided", 401);
-    const currentUser = yield (0, auth_service_1.protect)(token); // uses JWT_SECRET and checks user
+    const currentUser = yield (0, auth_service_1.protect)(token);
+    console.log("Authenticated user:", currentUser, "Role:", currentUser.role); // Debug log
     req.user = currentUser;
     next();
 }));
-const restrictTo = (...roles) => {
+function restrictTo(...roles) {
     return (req, _res, next) => {
         const aReq = req;
         if (!aReq.user || !roles.includes(aReq.user.role)) {
@@ -37,5 +39,4 @@ const restrictTo = (...roles) => {
         }
         next();
     };
-};
-exports.restrictTo = restrictTo;
+}

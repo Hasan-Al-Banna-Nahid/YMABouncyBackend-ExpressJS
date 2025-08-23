@@ -136,7 +136,7 @@ const protect = (token) => __awaiter(void 0, void 0, void 0, function* () {
     if (!decoded || typeof decoded !== "object" || !decoded.id || typeof decoded.iat !== "number") {
         throw new apiError_1.default("Invalid token payload.", 401);
     }
-    const currentUser = yield user_model_1.default.findById(decoded.id);
+    const currentUser = yield user_model_1.default.findById(decoded.id).select("+role"); // Explicitly include role
     if (!currentUser)
         throw new apiError_1.default("The user belonging to this token does no longer exist.", 401);
     if (currentUser.active === false) {
