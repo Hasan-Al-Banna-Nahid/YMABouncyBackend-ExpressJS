@@ -10,8 +10,8 @@ const routes_1 = __importDefault(require("./app/routes"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const app = (0, express_1.default)();
 // Body parser, reading data from body into req.body
-app.use(express_1.default.json({ limit: '1000kb' }));
-app.use(express_1.default.urlencoded({ extended: true, limit: '1000kb' }));
+app.use(express_1.default.json({ limit: '100000kb' }));
+app.use(express_1.default.urlencoded({ extended: true, limit: '100000kb' }));
 app.use((0, cookie_parser_1.default)());
 // Enable CORS
 app.use((0, cors_1.default)());

@@ -9,6 +9,7 @@ import { IUser } from "../interfaces/user.interface";
 import User from "../models/user.model";
 import ApiError from "../utils/apiError";
 import { sendEmail } from "./email.service";
+import {uploadToCloudinary} from "../utils/cloudinary.util";
 
 // ----- JWT config (typed) -----
 const JWT_SECRET_ENV = process.env.JWT_SECRET;
@@ -32,16 +33,33 @@ export const createSendToken = (user: IUser, statusCode: number, _req: Request, 
 };
 
 // ----- auth flows -----
-export const signup = async (name: string, email: string, password: string, passwordConfirm: string) => {
+export const signup = async (
+    name: string,
+    email: string,
+    password: string,
+    passwordConfirm: string,
+    photo?: Express.Multer.File
+) => {
     if (password !== passwordConfirm) throw new ApiError("Passwords do not match", 400);
 
     const existingUser = await User.findOne({ email });
     if (existingUser) throw new ApiError("Email already in use", 400);
 
-    const newUser = await User.create({ name, email, password }); // pre-save hook hashes
+    let photoUrl: string | undefined;
+    if (photo) {
+        photoUrl = await uploadToCloudinary(photo);
+    }
+
+    const newUser = await User.create({
+        name,
+        email,
+        password,
+        role: "user", // Default role
+        photo: photoUrl,
+    });
+
     return newUser;
 };
-
 export const login = async (email: string, password: string) => {
     if (!email || !password) throw new ApiError("Please provide email and password", 400);
 

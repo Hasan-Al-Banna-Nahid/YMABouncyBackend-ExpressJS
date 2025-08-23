@@ -22,6 +22,7 @@ const crypto_1 = __importDefault(require("crypto"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const apiError_1 = __importDefault(require("../utils/apiError"));
 const email_service_1 = require("./email.service");
+const cloudinary_util_1 = require("../utils/cloudinary.util");
 // ----- JWT config (typed) -----
 const JWT_SECRET_ENV = process.env.JWT_SECRET;
 if (!JWT_SECRET_ENV)
@@ -41,13 +42,23 @@ const createSendToken = (user, statusCode, _req, res) => {
 };
 exports.createSendToken = createSendToken;
 // ----- auth flows -----
-const signup = (name, email, password, passwordConfirm) => __awaiter(void 0, void 0, void 0, function* () {
+const signup = (name, email, password, passwordConfirm, photo) => __awaiter(void 0, void 0, void 0, function* () {
     if (password !== passwordConfirm)
         throw new apiError_1.default("Passwords do not match", 400);
     const existingUser = yield user_model_1.default.findOne({ email });
     if (existingUser)
         throw new apiError_1.default("Email already in use", 400);
-    const newUser = yield user_model_1.default.create({ name, email, password }); // pre-save hook hashes
+    let photoUrl;
+    if (photo) {
+        photoUrl = yield (0, cloudinary_util_1.uploadToCloudinary)(photo);
+    }
+    const newUser = yield user_model_1.default.create({
+        name,
+        email,
+        password,
+        role: "user", // Default role
+        photo: photoUrl,
+    });
     return newUser;
 });
 exports.signup = signup;

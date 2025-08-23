@@ -14,6 +14,7 @@ import {
     protect as verifyAccessTokenService,
 } from "../services/auth.service";
 import { issueTokens, sanitizeUser, hashToken } from "../utils/auth.util";
+import {uploadToCloudinary,upload} from "../utils/cloudinary.util";
 
 type AuthenticatedRequest = Request & { user: IUser };
 
@@ -36,7 +37,9 @@ const setAuthCookies = (res: Response, accessToken: string, refreshToken: string
 /** POST /auth/register */
 export const register = asyncHandler(async (req: Request, res: Response) => {
     const { name, email, password, passwordConfirm } = req.body;
-    const user = await signup(name, email, password, passwordConfirm);
+    const photo = req.file; // Multer adds the file to req.file
+
+    const user = await signup(name, email, password, passwordConfirm, photo);
     const { accessToken, refreshToken } = await issueTokens(user);
     setAuthCookies(res, accessToken, refreshToken);
     ApiResponse(res, 201, "User registered successfully", {
@@ -44,7 +47,6 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         tokens: { accessToken, refreshToken },
     });
 });
-
 /** POST /auth/login */
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body;
@@ -217,19 +219,28 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /** PATCH /auth/me */
+// src/controllers/auth.controller.ts
 export const updateMe = asyncHandler(async (req: Request, res: Response) => {
     const aReq = req as AuthenticatedRequest;
     if (!aReq.user) throw new ApiError("User not authenticated", 401);
 
-    const { name, email, photo } = req.body;
+    const { name, email } = req.body;
+    const photo = req.file; // Multer adds the file to req.file
+
+    let photoUrl: string | undefined;
+    if (photo) {
+        photoUrl = await uploadToCloudinary(photo);
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
         aReq.user.id,
-        { name, email, photo },
+        { name, email, photo: photoUrl || aReq.user.photo }, // Preserve existing photo if no new one
         { new: true, runValidators: true }
     );
+    if (!updatedUser) throw new ApiError("User not found", 404);
+
     ApiResponse(res, 200, "User updated successfully", { user: sanitizeUser(updatedUser) });
 });
-
 /** DELETE /auth/me (soft delete + return updated user) */
 export const deleteMe = asyncHandler(async (req: Request, res: Response) => {
     const aReq = req as AuthenticatedRequest;

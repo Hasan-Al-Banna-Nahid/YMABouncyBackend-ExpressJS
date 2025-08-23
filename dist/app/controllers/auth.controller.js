@@ -20,6 +20,7 @@ const apiResponse_1 = require("../utils/apiResponse");
 const user_model_1 = __importDefault(require("../models/user.model"));
 const auth_service_1 = require("../services/auth.service");
 const auth_util_1 = require("../utils/auth.util");
+const cloudinary_util_1 = require("../utils/cloudinary.util");
 const setAuthCookies = (res, accessToken, refreshToken) => {
     const isProd = process.env.NODE_ENV === "production";
     res.cookie("accessToken", accessToken, {
@@ -38,7 +39,8 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
 /** POST /auth/register */
 exports.register = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { name, email, password, passwordConfirm } = req.body;
-    const user = yield (0, auth_service_1.signup)(name, email, password, passwordConfirm);
+    const photo = req.file; // Multer adds the file to req.file
+    const user = yield (0, auth_service_1.signup)(name, email, password, passwordConfirm, photo);
     const { accessToken, refreshToken } = yield (0, auth_util_1.issueTokens)(user);
     setAuthCookies(res, accessToken, refreshToken);
     (0, apiResponse_1.ApiResponse)(res, 201, "User registered successfully", {
@@ -184,12 +186,21 @@ exports.getMe = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void
     (0, apiResponse_1.ApiResponse)(res, 200, "User retrieved successfully", { user: (0, auth_util_1.sanitizeUser)(user) });
 }));
 /** PATCH /auth/me */
+// src/controllers/auth.controller.ts
 exports.updateMe = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const aReq = req;
     if (!aReq.user)
         throw new apiError_1.default("User not authenticated", 401);
-    const { name, email, photo } = req.body;
-    const updatedUser = yield user_model_1.default.findByIdAndUpdate(aReq.user.id, { name, email, photo }, { new: true, runValidators: true });
+    const { name, email } = req.body;
+    const photo = req.file; // Multer adds the file to req.file
+    let photoUrl;
+    if (photo) {
+        photoUrl = yield (0, cloudinary_util_1.uploadToCloudinary)(photo);
+    }
+    const updatedUser = yield user_model_1.default.findByIdAndUpdate(aReq.user.id, { name, email, photo: photoUrl || aReq.user.photo }, // Preserve existing photo if no new one
+    { new: true, runValidators: true });
+    if (!updatedUser)
+        throw new apiError_1.default("User not found", 404);
     (0, apiResponse_1.ApiResponse)(res, 200, "User updated successfully", { user: (0, auth_util_1.sanitizeUser)(updatedUser) });
 }));
 /** DELETE /auth/me (soft delete + return updated user) */

@@ -18,7 +18,10 @@ const userSchema = new mongoose.Schema<IUser, IUserModel, IUserMethods>(
                 message: 'Please provide a valid email address',
             },
         },
-        photo: String,
+        photo: {
+            type: String,
+            default: null, // Optional photo URL
+        },
         role: { type: String, enum: ['user', 'admin'], default: 'user', required: true, index: true,select: false  },
 
         password: { type: String, minlength: 8, select: false },
