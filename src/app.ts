@@ -7,7 +7,7 @@ const app = express();
 
 const allowedOrigins = [
   "http://localhost:3000", // Frontend dev URL
-  "https://your-frontend-domain.com", // Production frontend URL
+  "https://yma-bouncy-castle-frontend-rlrg.vercel.app", // Production frontend URL
 ];
 
 // CORS configuration
