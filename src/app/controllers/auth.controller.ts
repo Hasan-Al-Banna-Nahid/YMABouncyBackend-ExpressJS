@@ -19,28 +19,25 @@ import { uploadToCloudinary } from "../utils/cloudinary.util";
 type AuthenticatedRequest = Request & { user: IUser };
 
 // helpers/cookies.ts
-
-export const setAuthCookies = (res: Response, accessToken: string, refreshToken: string) => {
-  const isProd = process.env.NODE_ENV === "production";
-
-  // Access token cookie (optional): you *can* skip setting this and only return access in JSON.
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: true,                 // required when SameSite=None
-    sameSite: "none",             // cross-site
-    path: "/",
-    maxAge: 60 * 60 * 1000,       // 1h
-  });
-
-  // Refresh token cookie (HttpOnly)
-  res.cookie("refreshToken", refreshToken, {
+const setAuthCookies = (res: Response, access: string, refresh: string) => {
+  res.cookie("accessToken", access, {
     httpOnly: true,
     secure: true,
     sameSite: "none",
-    path: "/",                    // or restrict e.g. "/api/v1/auth"
-    maxAge: 30 * 24 * 60 * 60 * 1000,  // 30d
+    partitioned: true,      // ⭐ allow 3rd-party cookie in modern Chrome
+    path: "/",
+    maxAge: 60 * 60 * 1000,
+  });
+  res.cookie("refreshToken", refresh, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    partitioned: true,      // ⭐
+    path: "/",
+    maxAge: 30 * 24 * 60 * 60 * 1000,
   });
 };
+
 
 
 
