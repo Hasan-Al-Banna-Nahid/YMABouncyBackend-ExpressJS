@@ -26,17 +26,15 @@ const setAuthCookies = (
   const isProd = process.env.NODE_ENV === "production";
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: true,
-    // sameSite: isProd ? "none" : "lax",
-    sameSite: "none",
+    secure: isProd, // must be true with SameSite=None on HTTPS
+    sameSite: isProd ? "none" : "lax",
     path: "/",
     maxAge: 1000 * 60 * 60,
   });
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: true,
-    // sameSite: isProd ? "none" : "lax",
-    sameSite: "none",
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
     path: "/",
     maxAge: 1000 * 60 * 60 * 24 * 30,
   });
