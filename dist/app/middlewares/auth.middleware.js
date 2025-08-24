@@ -27,7 +27,6 @@ exports.protectRoute = (0, asyncHandler_1.default)((req, _res, next) => __awaite
     if (!token)
         throw new apiError_1.default("No token provided", 401);
     const currentUser = yield (0, auth_service_1.protect)(token);
-    console.log("Authenticated user:", currentUser, "Role:", currentUser.role); // Debug log
     req.user = currentUser;
     next();
 }));
