@@ -23,24 +23,20 @@ const setAuthCookies = (res: Response, access: string, refresh: string) => {
   res.cookie("accessToken", access, {
     httpOnly: true,
     secure: true,
-    sameSite: "none",
-    partitioned: true,      // ⭐ allow 3rd-party cookie in modern Chrome
+    sameSite: "none" as const,
+    partitioned: true, // ⭐ allow 3rd-party cookie in modern Chrome
     path: "/",
     maxAge: 60 * 60 * 1000,
   });
   res.cookie("refreshToken", refresh, {
     httpOnly: true,
     secure: true,
-    sameSite: "none",
-    partitioned: true,      // ⭐
+    sameSite: "none" as const,
+    partitioned: true, // ⭐
     path: "/",
     maxAge: 30 * 24 * 60 * 60 * 1000,
   });
 };
-
-
-
-
 
 /** POST /auth/register */
 export const register = asyncHandler(async (req: Request, res: Response) => {
@@ -394,6 +390,16 @@ export const protectRoute = asyncHandler(
   }
 );
 export const clearAuthCookies = (res: Response) => {
-  res.clearCookie("accessToken", { httpOnly:true, secure:true, sameSite:"none", path:"/" });
-  res.clearCookie("refreshToken", { httpOnly:true, secure:true, sameSite:"none", path:"/" });
+  res.clearCookie("accessToken", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: "/",
+  });
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: "/",
+  });
 };
