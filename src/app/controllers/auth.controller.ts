@@ -18,27 +18,32 @@ import { uploadToCloudinary } from "../utils/cloudinary.util";
 
 type AuthenticatedRequest = Request & { user: IUser };
 
-const setAuthCookies = (
-  res: Response,
-  accessToken: string,
-  refreshToken: string
-) => {
+// helpers/cookies.ts
+
+export const setAuthCookies = (res: Response, accessToken: string, refreshToken: string) => {
   const isProd = process.env.NODE_ENV === "production";
+
+  // Access token cookie (optional): you *can* skip setting this and only return access in JSON.
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: isProd, // must be true with SameSite=None on HTTPS
-    sameSite: isProd ? "none" : "lax",
+    secure: true,                 // required when SameSite=None
+    sameSite: "none",             // cross-site
     path: "/",
-    maxAge: 1000 * 60 * 60,
+    maxAge: 60 * 60 * 1000,       // 1h
   });
+
+  // Refresh token cookie (HttpOnly)
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? "none" : "lax",
-    path: "/",
-    maxAge: 1000 * 60 * 60 * 24 * 30,
+    secure: true,
+    sameSite: "none",
+    path: "/",                    // or restrict e.g. "/api/v1/auth"
+    maxAge: 30 * 24 * 60 * 60 * 1000,  // 30d
   });
 };
+
+
+
 
 /** POST /auth/register */
 export const register = asyncHandler(async (req: Request, res: Response) => {
@@ -391,3 +396,7 @@ export const protectRoute = asyncHandler(
     next();
   }
 );
+export const clearAuthCookies = (res: Response) => {
+  res.clearCookie("accessToken", { httpOnly:true, secure:true, sameSite:"none", path:"/" });
+  res.clearCookie("refreshToken", { httpOnly:true, secure:true, sameSite:"none", path:"/" });
+};

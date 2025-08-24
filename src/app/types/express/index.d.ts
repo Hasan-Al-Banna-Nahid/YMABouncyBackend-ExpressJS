@@ -1,6 +1,7 @@
 // src/types/express/index.d.ts
 import "express";
 import { IUser } from '../../interfaces/user.interface';
+import { Secret } from 'jsonwebtoken';
 
 declare module "express-serve-static-core" {
     interface Request {
@@ -16,8 +17,6 @@ declare module "express-serve-static-core" {
 
 
 
-// src/types/express/index.d.ts
-import type { IUser } from "../../interfaces/user.interface";
 
 declare global {
     namespace Express {
@@ -34,10 +33,7 @@ declare global {
 export {}; // ensure this file is treated as a module
 declare namespace NodeJS {
     interface ProcessEnv {
-        JWT_SECRET: string;
-        JWT_EXPIRES_IN?: string;
-        JWT_REFRESH_SECRET: string;
-        JWT_REFRESH_EXPIRES_IN?: string;
+      
         expiresIn:number;
         NODE_ENV?: 'development' | 'production' | 'test';
         PORT?: string;
@@ -58,11 +54,3 @@ declare namespace NodeJS {
 }
 
 
-import { Secret } from 'jsonwebtoken';
-
-declare namespace NodeJS {
-    interface ProcessEnv {
-        JWT_SECRET: Secret;
-        JWT_EXPIRES_IN: string;
-    }
-}
