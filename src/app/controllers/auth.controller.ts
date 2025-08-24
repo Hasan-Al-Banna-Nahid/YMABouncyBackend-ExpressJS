@@ -26,7 +26,7 @@ const setAuthCookies = (
   const isProd = process.env.NODE_ENV === "production";
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: true, // must be true with SameSite=None on HTTPS
+    secure: true,
     // sameSite: isProd ? "none" : "lax",
     sameSite: "none",
     path: "/",
