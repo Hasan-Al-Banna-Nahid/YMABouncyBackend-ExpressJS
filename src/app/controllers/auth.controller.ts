@@ -76,6 +76,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     tokens: { accessToken, refreshToken },
   });
 });
+
 /** POST /auth/login */
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
@@ -86,32 +87,44 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     req.body?.refreshToken;
 
   if (existingRefreshToken) {
-    const payload = jwt.verify(
-      existingRefreshToken,
-      process.env.JWT_REFRESH_SECRET!
-    ) as any;
+    try {
+      const payload = jwt.verify(
+        existingRefreshToken,
+        process.env.JWT_REFRESH_SECRET!
+      ) as any;
 
-    const user = await User.findById(payload.id).select(
-      "+refreshTokenHash +refreshTokenExpiresAt"
-    );
-    if (!user) throw new ApiError("Invalid refresh token", 401);
+      const user = await User.findById(payload.id).select(
+        "+refreshTokenHash +refreshTokenExpiresAt"
+      );
+      if (!user) throw new ApiError("Invalid refresh token", 401);
 
-    const matches = user.refreshTokenHash === hashToken(existingRefreshToken);
-    const notExpired =
-      !user.refreshTokenExpiresAt || user.refreshTokenExpiresAt > new Date();
-    if (!matches || !notExpired)
-      throw new ApiError("Invalid/expired refresh token", 401);
+      const matches = user.refreshTokenHash === hashToken(existingRefreshToken);
+      const notExpired =
+        !user.refreshTokenExpiresAt || user.refreshTokenExpiresAt > new Date();
+      if (!matches || !notExpired)
+        throw new ApiError("Invalid/expired refresh token", 401);
 
-    const rotated = await issueTokens(user);
-    setAuthCookies(res, rotated.accessToken, rotated.refreshToken);
+      const rotated = await issueTokens(user);
+      setAuthCookies(res, rotated.accessToken, rotated.refreshToken);
 
-    return ApiResponse(res, 200, "Token refreshed", {
-      user: sanitizeUser(user),
-      tokens: rotated,
-    });
+      return ApiResponse(res, 200, "Token refreshed", {
+        user: sanitizeUser(user),
+        tokens: rotated,
+      });
+    } catch (err) {
+      // Handle invalid refresh: Log, clear cookie, fall back to normal login
+      console.error("Invalid refresh token during login:", err);
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        path: "/",
+      });
+      // Proceed to normal login below (no throw, so it continues)
+    }
   }
 
-  // normal login
+  // normal login (falls back here if refresh invalid)
   const user = await login(email, password);
   const { accessToken, refreshToken } = await issueTokens(user);
   setAuthCookies(res, accessToken, refreshToken);
