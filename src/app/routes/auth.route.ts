@@ -6,13 +6,12 @@ import {
   forgotPasswordHandler,
   resetPasswordHandler,
   updatePasswordHandler,
-  protectRoute,
   getMe,
   updateMe,
   deleteMe,
   logout,
 } from "../controllers/auth.controller";
-import { restrictTo } from "../middlewares/auth.middleware";
+import { protectRoute, restrictTo } from "../middlewares/auth.middleware";
 import { upload } from "../utils/cloudinary.util";
 const router = express.Router();
 

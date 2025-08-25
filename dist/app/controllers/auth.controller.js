@@ -13,6 +13,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.clearAuthCookies = exports.protectRoute = exports.deleteMe = exports.updateMe = exports.getMe = exports.updatePasswordHandler = exports.resetPasswordHandler = exports.forgotPasswordHandler = exports.logout = exports.refreshToken = exports.loginUser = exports.register = exports.setAuthCookies = void 0;
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const auth_service_1 = require("../services/auth.service");

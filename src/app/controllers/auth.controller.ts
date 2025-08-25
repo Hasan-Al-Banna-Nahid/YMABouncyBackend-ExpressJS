@@ -48,6 +48,21 @@ export const setAuthCookies = (
   });
 };
 
+export const clearAuthCookies = (res: Response) => {
+  res.clearCookie("accessToken", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: "/",
+  });
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: "/",
+  });
+};
+
 /** POST /auth/register */
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const { name, email, password, passwordConfirm } = req.body;
@@ -399,17 +414,3 @@ export const protectRoute = asyncHandler(
     next();
   }
 );
-export const clearAuthCookies = (res: Response) => {
-  res.clearCookie("accessToken", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    path: "/",
-  });
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    path: "/",
-  });
-};
