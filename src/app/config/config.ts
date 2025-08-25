@@ -10,9 +10,9 @@ export const config = {
   corsOrigin: process.env.CORS_ORIGIN || "http://localhost:3000",
 
   jwt: {
-    secret: process.env.JWT_SECRET || "your_jwt_secret_key",
-    expiresIn: process.env.JWT_EXPIRES_IN || "90d",
-    cookieExpiresIn: process.env.JWT_COOKIE_EXPIRES_IN
+    secret: !!process.env.JWT_SECRET || "your_jwt_secret_key",
+    expiresIn: !!process.env.JWT_EXPIRES_IN || "90d",
+    cookieExpiresIn: !!process.env.JWT_COOKIE_EXPIRES_IN
       ? parseInt(process.env.JWT_COOKIE_EXPIRES_IN)
       : 90,
   },
