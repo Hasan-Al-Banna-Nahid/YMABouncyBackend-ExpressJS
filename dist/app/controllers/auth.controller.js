@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.clearAuthCookies = exports.protectRoute = exports.deleteMe = exports.updateMe = exports.getMe = exports.updatePasswordHandler = exports.resetPasswordHandler = exports.forgotPasswordHandler = exports.logout = exports.refreshToken = exports.loginUser = exports.register = void 0;
+exports.clearAuthCookies = exports.protectRoute = exports.deleteMe = exports.updateMe = exports.getMe = exports.updatePasswordHandler = exports.resetPasswordHandler = exports.forgotPasswordHandler = exports.logout = exports.refreshToken = exports.loginUser = exports.register = exports.setAuthCookies = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const auth_service_1 = require("../services/auth.service");
@@ -22,31 +22,33 @@ const asyncHandler_1 = __importDefault(require("../utils/asyncHandler"));
 const auth_util_1 = require("../utils/auth.util");
 const cloudinary_util_1 = require("../utils/cloudinary.util");
 // helpers/cookies.ts
-const setAuthCookies = (res, access, refresh) => {
-    res.cookie("accessToken", access, {
+const setAuthCookies = (res, accessToken, refreshToken) => {
+    const isProd = process.env.NODE_ENV === "production";
+    // Access token cookie (optional): you *can* skip setting this and only return access in JSON.
+    res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        partitioned: true, // ⭐ allow 3rd-party cookie in modern Chrome
+        secure: true, // required when SameSite=None
+        sameSite: "none", // cross-site
         path: "/",
-        maxAge: 60 * 60 * 1000,
+        maxAge: 60 * 60 * 1000, // 1h
     });
-    res.cookie("refreshToken", refresh, {
+    // Refresh token cookie (HttpOnly)
+    res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: true,
         sameSite: "none",
-        partitioned: true, // ⭐
-        path: "/",
-        maxAge: 30 * 24 * 60 * 60 * 1000,
+        path: "/", // or restrict e.g. "/api/v1/auth"
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30d
     });
 };
+exports.setAuthCookies = setAuthCookies;
 /** POST /auth/register */
 exports.register = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { name, email, password, passwordConfirm } = req.body;
     const photo = req.file; // Multer adds the file to req.file
     const user = yield (0, auth_service_1.signup)(name, email, password, passwordConfirm, photo);
     const { accessToken, refreshToken } = yield (0, auth_util_1.issueTokens)(user);
-    setAuthCookies(res, accessToken, refreshToken);
+    (0, exports.setAuthCookies)(res, accessToken, refreshToken);
     (0, apiResponse_1.ApiResponse)(res, 201, "User registered successfully", {
         user: (0, auth_util_1.sanitizeUser)(user),
         tokens: { accessToken, refreshToken },
@@ -69,7 +71,7 @@ exports.loginUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, 
         if (!matches || !notExpired)
             throw new apiError_1.default("Invalid/expired refresh token", 401);
         const rotated = yield (0, auth_util_1.issueTokens)(user);
-        setAuthCookies(res, rotated.accessToken, rotated.refreshToken);
+        (0, exports.setAuthCookies)(res, rotated.accessToken, rotated.refreshToken);
         return (0, apiResponse_1.ApiResponse)(res, 200, "Token refreshed", {
             user: (0, auth_util_1.sanitizeUser)(user),
             tokens: rotated,
@@ -78,7 +80,7 @@ exports.loginUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, 
     // normal login
     const user = yield (0, auth_service_1.login)(email, password);
     const { accessToken, refreshToken } = yield (0, auth_util_1.issueTokens)(user);
-    setAuthCookies(res, accessToken, refreshToken);
+    (0, exports.setAuthCookies)(res, accessToken, refreshToken);
     (0, apiResponse_1.ApiResponse)(res, 200, "Logged in successfully", {
         user: (0, auth_util_1.sanitizeUser)(user),
         tokens: { accessToken, refreshToken },
@@ -100,7 +102,7 @@ exports.refreshToken = (0, asyncHandler_1.default)((req, res) => __awaiter(void 
     if (!matches || !notExpired)
         throw new apiError_1.default("Invalid/expired refresh token", 401);
     const rotated = yield (0, auth_util_1.issueTokens)(user);
-    setAuthCookies(res, rotated.accessToken, rotated.refreshToken);
+    (0, exports.setAuthCookies)(res, rotated.accessToken, rotated.refreshToken);
     (0, apiResponse_1.ApiResponse)(res, 200, "Token refreshed", {
         user: (0, auth_util_1.sanitizeUser)(user),
         tokens: rotated,
@@ -159,7 +161,7 @@ exports.resetPasswordHandler = (0, asyncHandler_1.default)((req, res) => __await
     const user = yield (0, auth_service_1.resetPassword)(token, password, passwordConfirm);
     // rotate tokens on reset
     const rotated = yield (0, auth_util_1.issueTokens)(user);
-    setAuthCookies(res, rotated.accessToken, rotated.refreshToken);
+    (0, exports.setAuthCookies)(res, rotated.accessToken, rotated.refreshToken);
     (0, apiResponse_1.ApiResponse)(res, 200, "Password reset successfully", {
         user: (0, auth_util_1.sanitizeUser)(user),
         tokens: rotated,
@@ -178,7 +180,7 @@ exports.updatePasswordHandler = (0, asyncHandler_1.default)((req, res) => __awai
     user.refreshTokenExpiresAt = undefined;
     yield user.save({ validateBeforeSave: false });
     const rotated = yield (0, auth_util_1.issueTokens)(user);
-    setAuthCookies(res, rotated.accessToken, rotated.refreshToken);
+    (0, exports.setAuthCookies)(res, rotated.accessToken, rotated.refreshToken);
     (0, apiResponse_1.ApiResponse)(res, 200, "Password updated successfully", {
         user: (0, auth_util_1.sanitizeUser)(user),
         tokens: rotated,
@@ -264,7 +266,7 @@ exports.updateMe = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, v
         yield userDoc.save();
         // Rotate tokens after password change
         rotatedTokens = yield (0, auth_util_1.issueTokens)(userDoc);
-        setAuthCookies(res, rotatedTokens.accessToken, rotatedTokens.refreshToken);
+        (0, exports.setAuthCookies)(res, rotatedTokens.accessToken, rotatedTokens.refreshToken);
     }
     else {
         // No password change: just persist profile changes if there are any

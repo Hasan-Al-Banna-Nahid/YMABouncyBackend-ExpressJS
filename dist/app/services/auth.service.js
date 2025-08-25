@@ -144,7 +144,10 @@ const protect = (token) => __awaiter(void 0, void 0, void 0, function* () {
     catch (_a) {
         throw new apiError_1.default("Invalid token. Please log in again!", 401);
     }
-    if (!decoded || typeof decoded !== "object" || !decoded.id || typeof decoded.iat !== "number") {
+    if (!decoded ||
+        typeof decoded !== "object" ||
+        !decoded.id ||
+        typeof decoded.iat !== "number") {
         throw new apiError_1.default("Invalid token payload.", 401);
     }
     const currentUser = yield user_model_1.default.findById(decoded.id).select("+role"); // Explicitly include role

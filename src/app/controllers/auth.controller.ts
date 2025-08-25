@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { IUser } from "../interfaces/user.interface";
@@ -19,22 +21,30 @@ import { uploadToCloudinary } from "../utils/cloudinary.util";
 type AuthenticatedRequest = Request & { user: IUser };
 
 // helpers/cookies.ts
-const setAuthCookies = (res: Response, access: string, refresh: string) => {
-  res.cookie("accessToken", access, {
+
+export const setAuthCookies = (
+  res: Response,
+  accessToken: string,
+  refreshToken: string
+) => {
+  const isProd = process.env.NODE_ENV === "production";
+
+  // Access token cookie (optional): you *can* skip setting this and only return access in JSON.
+  res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: true,
-    sameSite: "none" as const,
-    partitioned: true, // ⭐ allow 3rd-party cookie in modern Chrome
+    secure: true, // required when SameSite=None
+    sameSite: "none", // cross-site
     path: "/",
-    maxAge: 60 * 60 * 1000,
+    maxAge: 60 * 60 * 1000, // 1h
   });
-  res.cookie("refreshToken", refresh, {
+
+  // Refresh token cookie (HttpOnly)
+  res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: true,
-    sameSite: "none" as const,
-    partitioned: true, // ⭐
-    path: "/",
-    maxAge: 30 * 24 * 60 * 60 * 1000,
+    sameSite: "none",
+    path: "/", // or restrict e.g. "/api/v1/auth"
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30d
   });
 };
 

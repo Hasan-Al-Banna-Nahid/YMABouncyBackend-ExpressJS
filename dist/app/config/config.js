@@ -7,16 +7,18 @@ exports.config = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 exports.config = {
-    env: process.env.NODE_ENV || 'development',
+    env: process.env.NODE_ENV || "development",
     port: process.env.PORT || 5000,
     mongo: {
-        uri: process.env.MONGO_URI || 'mongodb://localhost:27017/yma-bouncy-castle',
+        uri: process.env.MONGO_URI || "mongodb://localhost:27017/yma-bouncy-castle",
     },
-    corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    corsOrigin: process.env.CORS_ORIGIN || "http://localhost:3000",
     jwt: {
-        secret: process.env.JWT_SECRET || 'your_jwt_secret_key',
-        expiresIn: process.env.JWT_EXPIRES_IN || '90d',
-        cookieExpiresIn: process.env.JWT_COOKIE_EXPIRES_IN ? parseInt(process.env.JWT_COOKIE_EXPIRES_IN) : 90,
+        secret: process.env.JWT_SECRET || "your_jwt_secret_key",
+        expiresIn: process.env.JWT_EXPIRES_IN || "90d",
+        cookieExpiresIn: process.env.JWT_COOKIE_EXPIRES_IN
+            ? parseInt(process.env.JWT_COOKIE_EXPIRES_IN)
+            : 90,
     },
     google: {
         clientId: process.env.GOOGLE_CLIENT_ID,
@@ -28,5 +30,5 @@ exports.config = {
         fromEmail: process.env.SENDGRID_FROM_EMAIL,
         fromName: process.env.SENDGRID_FROM_NAME,
     },
-    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+    frontendUrl: process.env.FRONTEND_URL || "http://localhost:3000",
 };
