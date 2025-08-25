@@ -21,7 +21,10 @@ import { uploadToCloudinary } from "../utils/cloudinary.util";
 type AuthenticatedRequest = Request & { user: IUser };
 
 // helpers/cookies.ts
-
+type CustomError = {
+  message: string;
+  stack: string;
+};
 export const setAuthCookies = (
   res: Response,
   accessToken: string,
@@ -78,56 +81,84 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /** POST /auth/login */
+/** POST /auth/login */
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  // try rotate if refresh present
+  // Log request details for debugging
+  console.log("Login Attempt:", {
+    email,
+    cookies: req.cookies,
+    bodyRefreshToken: req.body?.refreshToken,
+  });
+
+  // Try rotate if refresh present
   const existingRefreshToken =
-    ((req as any).cookies?.refreshToken as string | undefined) ||
-    req.body?.refreshToken;
+    (req.cookies?.refreshToken as string | undefined) || req.body?.refreshToken;
 
   if (existingRefreshToken) {
     try {
+      console.log("Attempting refresh token validation:", {
+        token: existingRefreshToken.slice(0, 10) + "...", // Log partial for security
+      });
       const payload = jwt.verify(
         existingRefreshToken,
         process.env.JWT_REFRESH_SECRET!
       ) as any;
+      console.log("Refresh Token Payload:", payload);
 
       const user = await User.findById(payload.id).select(
         "+refreshTokenHash +refreshTokenExpiresAt"
       );
-      if (!user) throw new ApiError("Invalid refresh token", 401);
+      if (!user) {
+        console.log("No user found for refresh token ID:", payload.id);
+        throw new ApiError("Invalid refresh token", 401);
+      }
 
       const matches = user.refreshTokenHash === hashToken(existingRefreshToken);
       const notExpired =
         !user.refreshTokenExpiresAt || user.refreshTokenExpiresAt > new Date();
-      if (!matches || !notExpired)
+      console.log("Refresh Token Validation:", {
+        matches,
+        notExpired,
+        refreshTokenHash: user.refreshTokenHash,
+        expiresAt: user.refreshTokenExpiresAt,
+      });
+
+      if (!matches || !notExpired) {
+        console.log("Refresh token invalid or expired");
         throw new ApiError("Invalid/expired refresh token", 401);
+      }
 
       const rotated = await issueTokens(user);
       setAuthCookies(res, rotated.accessToken, rotated.refreshToken);
-
+      console.log("Tokens rotated successfully");
       return ApiResponse(res, 200, "Token refreshed", {
         user: sanitizeUser(user),
         tokens: rotated,
       });
     } catch (err) {
-      // Handle invalid refresh: Log, clear cookie, fall back to normal login
-      console.error("Invalid refresh token during login:", err);
+      // Log error and clear invalid refresh token
+      console.error("Invalid refresh token during login:", {
+        error: (err as CustomError).message,
+        stack: (err as CustomError).stack,
+      });
       res.clearCookie("refreshToken", {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "none",
         path: "/",
       });
-      // Proceed to normal login below (no throw, so it continues)
+      // Fall back to normal login
+      console.log("Falling back to normal login for email:", email);
     }
   }
 
-  // normal login (falls back here if refresh invalid)
+  // Normal login
   const user = await login(email, password);
   const { accessToken, refreshToken } = await issueTokens(user);
   setAuthCookies(res, accessToken, refreshToken);
+  console.log("Normal login successful for user:", user.email);
   ApiResponse(res, 200, "Logged in successfully", {
     user: sanitizeUser(user),
     tokens: { accessToken, refreshToken },
