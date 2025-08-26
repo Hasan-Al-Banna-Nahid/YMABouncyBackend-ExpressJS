@@ -1,33 +1,45 @@
-import { Request, Response, NextFunction } from 'express';
-import ApiError from '../utils/apiError';
+import { Request, Response, NextFunction } from "express";
 
-export const errorConverter = (err: any, req: Request, res: Response, next: NextFunction) => {
-    if (!(err instanceof ApiError)) {
-        const statusCode = err.statusCode || 500;
-        const message = err.message || 'Internal Server Error';
-        err = new ApiError(message, statusCode, err.stack);
-    }
-    next(err);
-};
+// ApiError class
+export default class ApiError extends Error {
+  statusCode: number;
+  isOperational: boolean;
+  errors?: any[];
 
-export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-    const { statusCode, message } = err;
+  constructor(
+    message: string,
+    statusCode: number,
+    errors?: any[],
+    isOperational = true
+  ) {
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = isOperational;
+    this.errors = errors;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
 
-    res.locals.errorMessage = err.message;
+// Global error handler middleware
+export function globalErrorHandler(
+  err: any,
+  _req: Request,
+  res: Response,
+  _next: NextFunction
+) {
+  const isApiError = err instanceof ApiError;
+  const statusCode: number = isApiError
+    ? err.statusCode
+    : err?.statusCode || 500;
+  const status: string = `${statusCode}`.startsWith("4") ? "fail" : "error";
 
-    const response = {
-        status: statusCode,
-        message,
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-    };
+  // Ensure JSON content type
+  res.setHeader("Content-Type", "application/json");
 
-    if (process.env.NODE_ENV === 'development') {
-        console.error(err);
-    }
-
-    res.status(statusCode).json(response);
-};
-
-export const notFound = (req: Request, res: Response, next: NextFunction) => {
-    next(new ApiError('Not found', 404));
-};
+  res.status(statusCode).json({
+    status,
+    message: err?.message || "Something went wrong",
+    ...(isApiError && err.errors ? { errors: err.errors } : {}),
+    ...(process.env.NODE_ENV !== "production" ? { stack: err?.stack } : {}),
+  });
+}

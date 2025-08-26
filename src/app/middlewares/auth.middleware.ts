@@ -16,7 +16,7 @@ export type AuthenticatedRequest = Request & { user: IUser };
 //   const cookieToken = req.cookies?.accessToken as string | undefined;
 
 //   const token = headerToken || cookieToken;
-//   if (!token) throw new ApiError("No token provided", 401);
+//   if (!token)  throw ApiError("No token provided", 401);
 
 //   const currentUser = await verifyAccessToken(token);
 //   (req as AuthenticatedRequest).user = currentUser;

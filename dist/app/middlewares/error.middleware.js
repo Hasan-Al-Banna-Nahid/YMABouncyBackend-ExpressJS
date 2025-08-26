@@ -4,12 +4,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notFound = exports.errorHandler = exports.errorConverter = void 0;
-const apiError_1 = __importDefault(require("../utils/apiError"));
+const throw ApiError_1 = __importDefault(require("../utils/throw ApiError"));
 const errorConverter = (err, req, res, next) => {
-    if (!(err instanceof apiError_1.default)) {
+    if (!(err instanceof throw ApiError_1.default)) {
         const statusCode = err.statusCode || 500;
         const message = err.message || 'Internal Server Error';
-        err = new apiError_1.default(message, statusCode, err.stack);
+        err = new throw ApiError_1.default(message, statusCode, err.stack);
     }
     next(err);
 };
@@ -29,6 +29,6 @@ const errorHandler = (err, req, res, next) => {
 };
 exports.errorHandler = errorHandler;
 const notFound = (req, res, next) => {
-    next(new apiError_1.default('Not found', 404));
+    next(new throw ApiError_1.default('Not found', 404));
 };
 exports.notFound = notFound;

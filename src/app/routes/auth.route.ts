@@ -5,7 +5,7 @@ import {
   refreshToken,
   forgotPasswordHandler,
   resetPasswordHandler,
-  updatePasswordHandler,
+  // updatePasswordHandler,
   renderResetPasswordPage,
   getMe,
   updateMe,
@@ -33,7 +33,7 @@ router.post("/reset-password", resetPasswordHandler);
 // Protected routes (require authentication)
 router.use(protectRoute);
 
-router.patch("/update-password", updatePasswordHandler);
+// router.patch("/update-password", updatePasswordHandler);
 router.get("/me", getMe);
 router.patch("/update-me", upload.single("photo"), updateMe);
 

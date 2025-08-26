@@ -1,10 +1,19 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __importDefault =
+  (this && this.__importDefault) ||
+  function (mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkAvailability = exports.getBookingsByProduct = exports.getBookingsByUser = exports.deleteBooking = exports.getBookingsByDateRange = exports.getBookings = exports.getBooking = void 0;
-const apiError_1 = __importDefault(require("../utils/apiError"));
+exports.checkAvailability =
+  exports.getBookingsByProduct =
+  exports.getBookingsByUser =
+  exports.deleteBooking =
+  exports.getBookingsByDateRange =
+  exports.getBookings =
+  exports.getBooking =
+    void 0;
+const throw ApiError_1 = __importDefault(require("../utils/throw ApiError"));
 const booking_model_1 = __importDefault(require("../models/booking.model"));
 const inventory_model_1 = __importDefault(require("../models/inventory.model"));
 // import { sendEmail } from './email.service';
@@ -21,7 +30,7 @@ const inventory_model_1 = __importDefault(require("../models/inventory.model"));
 //     });
 //
 //     if (inventoryItems.length === 0) {
-//         throw new ApiError('No available inventory for the selected dates', 400);
+//          new throw ApiError('No available inventory for the selected dates', 400);
 //     }
 //
 //     // 2) Create booking
@@ -56,22 +65,22 @@ const inventory_model_1 = __importDefault(require("../models/inventory.model"));
 //     return booking;
 // };
 const getBooking = async (id) => {
-    const booking = await booking_model_1.default.findById(id);
-    if (!booking) {
-        throw new apiError_1.default("No booking found with that ID", 404);
-    }
-    return booking;
+  const booking = await booking_model_1.default.findById(id);
+  if (!booking) {
+    new throw ApiError_1.default("No booking found with that ID", 404);
+  }
+  return booking;
 };
 exports.getBooking = getBooking;
 const getBookings = async (filter = {}) => {
-    return await booking_model_1.default.find(filter);
+  return await booking_model_1.default.find(filter);
 };
 exports.getBookings = getBookings;
 const getBookingsByDateRange = async (startDate, endDate) => {
-    return await booking_model_1.default.find({
-        startDate: { $gte: startDate },
-        endDate: { $lte: endDate },
-    });
+  return await booking_model_1.default.find({
+    startDate: { $gte: startDate },
+    endDate: { $lte: endDate },
+  });
 };
 exports.getBookingsByDateRange = getBookingsByDateRange;
 // export const updateBooking = async (id: string, updateData: Partial<IBooking>) => {
@@ -81,7 +90,7 @@ exports.getBookingsByDateRange = getBookingsByDateRange;
 //     });
 //
 //     if (!booking) {
-//         throw new ApiError('No booking found with that ID', 404);
+//          new throw ApiError('No booking found with that ID', 404);
 //     }
 //
 //     // If status was updated to confirmed, send confirmation email
@@ -103,37 +112,40 @@ exports.getBookingsByDateRange = getBookingsByDateRange;
 //     return booking;
 // };
 const deleteBooking = async (id) => {
-    const booking = await booking_model_1.default.findByIdAndDelete(id);
-    if (!booking) {
-        throw new apiError_1.default("No booking found with that ID", 404);
+  const booking = await booking_model_1.default.findByIdAndDelete(id);
+  if (!booking) {
+    new throw ApiError_1.default("No booking found with that ID", 404);
+  }
+  // Update inventory status back to available
+  await inventory_model_1.default.updateMany(
+    {
+      bookings: booking._id,
+    },
+    {
+      $set: { status: "available" },
+      $pull: { bookings: booking._id },
     }
-    // Update inventory status back to available
-    await inventory_model_1.default.updateMany({
-        bookings: booking._id,
-    }, {
-        $set: { status: "available" },
-        $pull: { bookings: booking._id },
-    });
-    return booking;
+  );
+  return booking;
 };
 exports.deleteBooking = deleteBooking;
 const getBookingsByUser = async (userId) => {
-    return await booking_model_1.default.find({ user: userId });
+  return await booking_model_1.default.find({ user: userId });
 };
 exports.getBookingsByUser = getBookingsByUser;
 const getBookingsByProduct = async (productId) => {
-    return await booking_model_1.default.find({ product: productId });
+  return await booking_model_1.default.find({ product: productId });
 };
 exports.getBookingsByProduct = getBookingsByProduct;
 const checkAvailability = async (productId, startDate, endDate) => {
-    const availableItems = await inventory_model_1.default.find({
-        product: productId,
-        date: { $gte: startDate, $lte: endDate },
-        status: "available",
-    });
-    return {
-        available: availableItems.length > 0,
-        availableDates: availableItems.map((item) => item.date),
-    };
+  const availableItems = await inventory_model_1.default.find({
+    product: productId,
+    date: { $gte: startDate, $lte: endDate },
+    status: "available",
+  });
+  return {
+    available: availableItems.length > 0,
+    availableDates: availableItems.map((item) => item.date),
+  };
 };
 exports.checkAvailability = checkAvailability;

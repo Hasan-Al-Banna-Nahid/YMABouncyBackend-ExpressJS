@@ -18,7 +18,7 @@ import { IBooking } from "../interfaces/booking.interface";
 //     });
 //
 //     if (inventoryItems.length === 0) {
-//         throw new ApiError('No available inventory for the selected dates', 400);
+//          throw ApiError('No available inventory for the selected dates', 400);
 //     }
 //
 //     // 2) Create booking
@@ -82,7 +82,7 @@ export const getBookingsByDateRange = async (
 //     });
 //
 //     if (!booking) {
-//         throw new ApiError('No booking found with that ID', 404);
+//          throw ApiError('No booking found with that ID', 404);
 //     }
 //
 //     // If status was updated to confirmed, send confirmation email

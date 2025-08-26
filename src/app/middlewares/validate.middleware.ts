@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import ApiError from '../utils/apiError';
+import throw ApiError from '../utils/throw ApiError';
 
 const validate = (schema:any) =>
     async (req: Request, res: Response, next: NextFunction) => {
@@ -11,7 +11,7 @@ const validate = (schema:any) =>
             });
             return next();
         } catch (error) {
-            return next(new ApiError('Validation failed', 400, (error as any).errors));
+            return next(new throw ApiError('Validation failed', 400, (error as any).errors));
         }
     };
 

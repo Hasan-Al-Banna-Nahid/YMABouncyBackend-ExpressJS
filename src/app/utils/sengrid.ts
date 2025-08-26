@@ -12,8 +12,8 @@ const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL;
 const SENDGRID_FROM_NAME = process.env.SENDGRID_FROM_NAME || "YMABouncyCastle";
 
-if (!SENDGRID_API_KEY) throw new Error("SENDGRID_API_KEY is not set");
-if (!SENDGRID_FROM_EMAIL) throw new Error("SENDGRID_FROM_EMAIL is not set");
+if (!SENDGRID_API_KEY) new Error("SENDGRID_API_KEY is not set");
+if (!SENDGRID_FROM_EMAIL) new Error("SENDGRID_FROM_EMAIL is not set");
 
 sgMail.setApiKey(SENDGRID_API_KEY);
 
@@ -38,7 +38,7 @@ function resolveEmailTemplate(templateName: string): string {
     path.resolve(__dirname, "..", "views", "emails", `${templateName}.ejs`),
   ];
   for (const p of candidates) if (fs.existsSync(p)) return p;
-  throw new Error(`Email template not found: ${templateName}.ejs`);
+  new Error(`Email template not found: ${templateName}.ejs`);
 }
 
 // ---- Render EJS with provided variables ----
@@ -66,7 +66,7 @@ export async function sendEmailHtml(to: string, subject: string, html: string) {
       status: err?.code,
       response: err?.response?.body, // detailed reasons from SendGrid
     });
-    throw err;
+    err;
   }
 }
 

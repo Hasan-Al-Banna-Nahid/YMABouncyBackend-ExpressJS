@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const apiError_1 = __importDefault(require("../utils/apiError"));
+const throw ApiError_1 = __importDefault(require("../utils/throw ApiError"));
 const validate = (schema) => async (req, res, next) => {
     try {
         await schema.parseAsync({
@@ -14,7 +14,7 @@ const validate = (schema) => async (req, res, next) => {
         return next();
     }
     catch (error) {
-        return next(new apiError_1.default('Validation failed', 400, error.errors));
+        return next(new throw ApiError_1.default('Validation failed', 400, error.errors));
     }
 };
 exports.default = validate;

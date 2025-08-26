@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import jwt, { JwtPayload, type Secret, type SignOptions } from "jsonwebtoken";
+import jwt, { JwtPayload, SignOptions, Secret } from "jsonwebtoken";
 import { Request } from "express";
 import crypto from "crypto";
 import ApiError from "../utils/apiError";
@@ -11,10 +11,12 @@ import { uploadToCloudinary } from "../utils/cloudinary.util";
 import { sendPasswordResetEmail, sendResetSuccessEmail } from "./email.service";
 
 // ----- JWT config (typed) -----
-const JWT_SECRET_ENV = process.env.JWT_SECRET;
-if (!JWT_SECRET_ENV) throw new Error("JWT_SECRET is not defined");
-const JWT_SECRET: Secret = JWT_SECRET_ENV;
 
+const JWT_SECRET_ENV = process.env.JWT_SECRET;
+if (!JWT_SECRET_ENV) {
+  throw new Error("JWT_SECRET is not defined");
+}
+const JWT_SECRET: Secret = JWT_SECRET_ENV; // TypeScript now knows JWT_SECRET_ENV is string
 const JWT_EXPIRES_IN: SignOptions["expiresIn"] =
   (process.env.JWT_EXPIRES_IN as unknown as SignOptions["expiresIn"]) ?? "15m";
 
@@ -226,7 +228,7 @@ export const protect = async (token: string): Promise<IUser> => {
   // if ((currentUser as any).lastLogoutAt) {
   //   const lastOutMs = new Date((currentUser as any).lastLogoutAt).getTime();
   //   if (decoded.iat * 1000 < lastOutMs) {
-  //     throw new ApiError("Session ended. Please log in again.", 401);
+  //      new throw new ApiError("Session ended. Please log in again.", 401);
   //   }
   // }
 

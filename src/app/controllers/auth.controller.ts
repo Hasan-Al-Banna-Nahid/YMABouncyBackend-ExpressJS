@@ -255,7 +255,7 @@ export const updateMe = asyncHandler(async (req: Request, res: Response) => {
   if (file) {
     photoUrl = await uploadToCloudinary(file);
     const ts = Date.now();
-    photoUrl = `${photoUrl}${photoUrl.includes("?") ? "&" : "?"}t=${ts}`;
+    photoUrl = `${photoUrl}${photoUrl?.includes("?") ? "&" : "?"}t=${ts}`;
   }
 
   const profileUpdate: Record<string, any> = {};
