@@ -5,7 +5,7 @@ import {
   refreshToken,
   forgotPasswordHandler,
   resetPasswordHandler,
-  // updatePasswordHandler,
+  updatePasswordHandler,
   renderResetPasswordPage,
   getMe,
   updateMe,

@@ -1,151 +1,244 @@
-import { FilterQuery } from "mongoose";
+// src/services/booking.service.ts
+import mongoose from "mongoose";
 import ApiError from "../utils/apiError";
-import Booking from "../models/booking.model";
-import Inventory from "../models/inventory.model";
+import Booking, { IBookingModel } from "../models/booking.model";
 import { IBooking } from "../interfaces/booking.interface";
-// import { sendEmail } from './email.service';
+import { IAddress } from "../interfaces/address.interface";
+import { normalizeIdOrThrow } from "../utils/objectId";
+// import Inventory from "../models/inventory.model"; // optional if you track per-date items
 
-// export const createBooking = async (bookingData: IBooking) => {
-//     // 1) Check inventory availability for the selected dates
-//     const startDate = new Date(bookingData.startDate);
-//     const endDate = new Date(bookingData.endDate);
-//
-//     // Get all inventory items for this product between the dates
-//     const inventoryItems = await Inventory.find({
-//         product: bookingData.product,
-//         date: { $gte: startDate, $lte: endDate },
-//         status: 'available',
-//     });
-//
-//     if (inventoryItems.length === 0) {
-//          throw ApiError('No available inventory for the selected dates', 400);
-//     }
-//
-//     // 2) Create booking
-//     const booking = await Booking.create(bookingData);
-//
-//     // 3) Update inventory status to booked
-//     await Inventory.updateMany(
-//         {
-//             product: bookingData.product,
-//             date: { $gte: startDate, $lte: endDate },
-//         },
-//         {
-//             $set: { status: 'booked' },
-//             $addToSet: { bookings: booking._id },
-//         }
-//     );
-//
-//     // 4) Send booking confirmation email
-//     await sendEmail({
-//         email: booking.user.email,
-//         subject: 'Your Booking Confirmation',
-//         template: 'bookingConfirmation',
-//         templateVars: {
-//             name: booking.user.name,
-//             productName: booking.product.name,
-//             startDate: booking.startDate.toLocaleDateString(),
-//             endDate: booking.endDate.toLocaleDateString(),
-//             price: booking.price,
-//         },
-//     });
-//
-//     return booking;
-// };
+type Status = IBookingModel["status"];
+const isEditableStatus = (s: Status) => s === "pending" || s === "confirmed";
 
-export const getBooking = async (id: string) => {
-  const booking = await Booking.findById(id);
-  if (!booking) {
-    throw new ApiError("No booking found with that ID", 404);
-  }
-  return booking;
-};
+const getOwnerId = (b: IBookingModel): string =>
+  b.user instanceof mongoose.Types.ObjectId
+    ? b.user.toString()
+    : b.user._id.toString();
 
-export const getBookings = async (filter: FilterQuery<IBooking> = {}) => {
-  return await Booking.find(filter);
-};
-
-export const getBookingsByDateRange = async (
-  startDate: Date,
-  endDate: Date
+const ensureOwnershipOrAdmin = (
+  booking: IBookingModel,
+  callerId: string,
+  isAdmin: boolean
 ) => {
-  return await Booking.find({
-    startDate: { $gte: startDate },
-    endDate: { $lte: endDate },
-  });
+  const owner = getOwnerId(booking);
+  if (!isAdmin && owner !== callerId) throw new ApiError("Unauthorized", 403);
 };
 
-// export const updateBooking = async (id: string, updateData: Partial<IBooking>) => {
-//     const booking = await Booking.findByIdAndUpdate(id, updateData, {
-//         new: true,
-//         runValidators: true,
-//     });
-//
-//     if (!booking) {
-//          throw ApiError('No booking found with that ID', 404);
-//     }
-//
-//     // If status was updated to confirmed, send confirmation email
-//     if (updateData.status === 'confirmed') {
-//         await sendEmail({
-//             email: booking.user.email,
-//             subject: 'Your Booking Has Been Confirmed',
-//             template: 'bookingConfirmed',
-//             templateVars: {
-//                 name: booking.user.name,
-//                 productName: booking.product.name,
-//                 startDate: booking.startDate.toLocaleDateString(),
-//                 endDate: booking.endDate.toLocaleDateString(),
-//                 price: booking.price,
-//             },
-//         });
-//     }
-//
-//     return booking;
-// };
-
-export const deleteBooking = async (id: string) => {
-  const booking = await Booking.findByIdAndDelete(id);
-
-  if (!booking) {
-    throw new ApiError("No booking found with that ID", 404);
+const ensureEditable = (booking: IBookingModel) => {
+  if (!isEditableStatus(booking.status)) {
+    throw new ApiError(
+      `Booking not editable in status '${booking.status}'`,
+      409
+    );
   }
-
-  // Update inventory status back to available
-  await Inventory.updateMany(
-    {
-      bookings: booking._id,
-    },
-    {
-      $set: { status: "available" },
-      $pull: { bookings: booking._id },
-    }
-  );
-
-  return booking;
 };
 
-export const getBookingsByUser = async (userId: string) => {
-  return await Booking.find({ user: userId });
-};
-
-export const getBookingsByProduct = async (productId: string) => {
-  return await Booking.find({ product: productId });
-};
-
-export const checkAvailability = async (
-  productId: string,
-  startDate: Date,
-  endDate: Date
-) => {
-  const availableItems = await Inventory.find({
+/** Overlap: existing.start <= requested.end && existing.end >= requested.start */
+async function hasOverlap(
+  productId: mongoose.Types.ObjectId,
+  start: Date,
+  end: Date,
+  excludeId?: string
+): Promise<boolean> {
+  const query: any = {
     product: productId,
-    date: { $gte: startDate, $lte: endDate },
-    status: "available",
-  });
-
-  return {
-    available: availableItems.length > 0,
-    availableDates: availableItems.map((item) => item.date),
+    status: { $ne: "cancelled" },
+    startDate: { $lte: end },
+    endDate: { $gte: start },
   };
-};
+  if (excludeId) query._id = { $ne: new mongoose.Types.ObjectId(excludeId) };
+  const conflict = await Booking.findOne(query).lean();
+  return !!conflict;
+}
+
+export class BookingService {
+  /** CREATE */
+  static async createBooking(
+    data: Omit<IBooking, "paid" | "status"> &
+      Partial<
+        Pick<IBooking, "shippingAddress" | "billingAddress" | "specialRequests">
+      >
+  ) {
+    // Prevent overlaps
+    if (
+      await hasOverlap(
+        data.product as mongoose.Types.ObjectId,
+        data.startDate,
+        data.endDate
+      )
+    ) {
+      throw new ApiError(
+        "Selected dates are not available for this product",
+        409
+      );
+    }
+
+    const booking = await Booking.create({
+      ...data,
+      paid: false,
+      status: "pending",
+    });
+
+    // Optional: Inventory bookkeeping
+    // await Inventory.updateMany(
+    //   { product: data.product, date: { $gte: data.startDate, $lte: data.endDate } },
+    //   { $set: { status: "booked" }, $addToSet: { bookings: booking._id } }
+    // );
+
+    return booking;
+  }
+
+  /** UPDATE (partial) */
+  static async updateBooking(
+    bookingId: string,
+    callerUserId: string,
+    payload: Partial<IBooking>,
+    isAdmin = false
+  ): Promise<IBookingModel> {
+    const id = normalizeIdOrThrow(bookingId, "booking id");
+    const booking = await Booking.findById(id);
+    if (!booking) throw new ApiError("Booking not found", 404);
+
+    ensureOwnershipOrAdmin(booking, callerUserId, isAdmin);
+
+    // Gates for editing
+    const touchesCore =
+      payload.startDate ||
+      payload.endDate ||
+      payload.deliveryTime ||
+      typeof payload.specialRequests !== "undefined" ||
+      payload.shippingAddress ||
+      payload.billingAddress ||
+      payload.status;
+
+    if (touchesCore) ensureEditable(booking);
+
+    // Prevent product/user change via this endpoint
+    if ((payload as any).product || (payload as any).user) {
+      throw new ApiError(
+        "Cannot change product/user on an existing booking",
+        400
+      );
+    }
+
+    // Date sanity + overlap
+    const newStart = (payload.startDate as Date) || booking.startDate;
+    const newEnd = (payload.endDate as Date) || booking.endDate;
+    if (newEnd < newStart)
+      throw new ApiError("endDate must be after startDate", 400);
+
+    if (
+      (payload.startDate || payload.endDate) &&
+      (await hasOverlap(
+        booking.product as mongoose.Types.ObjectId,
+        newStart,
+        newEnd,
+        booking.id
+      ))
+    ) {
+      throw new ApiError("Updated dates overlap with another booking", 409);
+    }
+
+    // Apply fields
+    if (payload.status) booking.status = payload.status;
+    if (payload.startDate) booking.startDate = payload.startDate as Date;
+    if (payload.endDate) booking.endDate = payload.endDate as Date;
+    if (payload.deliveryTime) booking.deliveryTime = payload.deliveryTime!;
+    if (typeof payload.specialRequests !== "undefined")
+      booking.specialRequests = payload.specialRequests!;
+    if (payload.shippingAddress)
+      booking.shippingAddress = payload.shippingAddress as IAddress;
+    if (payload.billingAddress)
+      booking.billingAddress = payload.billingAddress as IAddress;
+
+    await booking.save();
+    return booking;
+  }
+
+  /** DELETE */
+  static async deleteBooking(
+    bookingId: string,
+    callerUserId: string,
+    isAdmin = false
+  ): Promise<void> {
+    const id = normalizeIdOrThrow(bookingId, "booking id");
+    const booking = await Booking.findById(id);
+    if (!booking) throw new ApiError("Booking not found", 404);
+
+    ensureOwnershipOrAdmin(booking, callerUserId, isAdmin);
+
+    // Optional: free inventory if you track it
+    // await Inventory.updateMany(
+    //   { bookings: booking._id },
+    //   { $set: { status: "available" }, $pull: { bookings: booking._id } }
+    // );
+
+    await booking.deleteOne();
+  }
+
+  /** Update ONLY the shipping address. */
+  static async updateShippingAddress(
+    bookingId: string,
+    callerUserId: string,
+    address: IAddress,
+    isAdmin = false
+  ): Promise<IBookingModel> {
+    const id = normalizeIdOrThrow(bookingId, "booking id");
+    const booking = await Booking.findById(id);
+    if (!booking) throw new ApiError("Booking not found", 404);
+
+    ensureOwnershipOrAdmin(booking, callerUserId, isAdmin);
+    ensureEditable(booking);
+
+    booking.shippingAddress = address;
+    await booking.save();
+    return booking;
+  }
+
+  /** Update ONLY the billing address. */
+  static async updateBillingAddress(
+    bookingId: string,
+    callerUserId: string,
+    address: IAddress,
+    isAdmin = false
+  ): Promise<IBookingModel> {
+    const id = normalizeIdOrThrow(bookingId, "booking id");
+    const booking = await Booking.findById(id);
+    if (!booking) throw new ApiError("Booking not found", 404);
+
+    ensureOwnershipOrAdmin(booking, callerUserId, isAdmin);
+    ensureEditable(booking);
+
+    booking.billingAddress = address;
+    await booking.save();
+    return booking;
+  }
+
+  /** Update BOTH addresses at once (optional helper). */
+  static async updateAddresses(
+    bookingId: string,
+    callerUserId: string,
+    options: { shippingAddress?: IAddress; billingAddress?: IAddress },
+    isAdmin = false
+  ): Promise<IBookingModel> {
+    const id = normalizeIdOrThrow(bookingId, "booking id");
+    const booking = await Booking.findById(id);
+    if (!booking) throw new ApiError("Booking not found", 404);
+
+    ensureOwnershipOrAdmin(booking, callerUserId, isAdmin);
+    ensureEditable(booking);
+
+    if (options.shippingAddress)
+      booking.shippingAddress = options.shippingAddress;
+    if (options.billingAddress) booking.billingAddress = options.billingAddress;
+
+    await booking.save();
+    return booking;
+  }
+
+  /** (Optional) Fetch by id after updates, etc. */
+  static async getById(bookingId: string): Promise<IBookingModel | null> {
+    const id = normalizeIdOrThrow(bookingId, "booking id");
+    return Booking.findById(id);
+  }
+}

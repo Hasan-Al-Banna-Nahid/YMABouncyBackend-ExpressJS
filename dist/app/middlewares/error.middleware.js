@@ -1,34 +1,33 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notFound = exports.errorHandler = exports.errorConverter = void 0;
-const throw ApiError_1 = __importDefault(require("../utils/throw ApiError"));
-const errorConverter = (err, req, res, next) => {
-    if (!(err instanceof throw ApiError_1.default)) {
-        const statusCode = err.statusCode || 500;
-        const message = err.message || 'Internal Server Error';
-        err = new throw ApiError_1.default(message, statusCode, err.stack);
+exports.globalErrorHandler = globalErrorHandler;
+// ApiError class
+class ApiError extends Error {
+    statusCode;
+    isOperational;
+    errors;
+    constructor(message, statusCode, errors, isOperational = true) {
+        super(message);
+        this.statusCode = statusCode;
+        this.isOperational = isOperational;
+        this.errors = errors;
+        Error.captureStackTrace(this, this.constructor);
     }
-    next(err);
-};
-exports.errorConverter = errorConverter;
-const errorHandler = (err, req, res, next) => {
-    const { statusCode, message } = err;
-    res.locals.errorMessage = err.message;
-    const response = {
-        status: statusCode,
-        message,
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-    };
-    if (process.env.NODE_ENV === 'development') {
-        console.error(err);
-    }
-    res.status(statusCode).json(response);
-};
-exports.errorHandler = errorHandler;
-const notFound = (req, res, next) => {
-    next(new throw ApiError_1.default('Not found', 404));
-};
-exports.notFound = notFound;
+}
+exports.default = ApiError;
+// Global error handler middleware
+function globalErrorHandler(err, _req, res, _next) {
+    const isApiError = err instanceof ApiError;
+    const statusCode = isApiError
+        ? err.statusCode
+        : err?.statusCode || 500;
+    const status = `${statusCode}`.startsWith("4") ? "fail" : "error";
+    // Ensure JSON content type
+    res.setHeader("Content-Type", "application/json");
+    res.status(statusCode).json({
+        status,
+        message: err?.message || "Something went wrong",
+        ...(isApiError && err.errors ? { errors: err.errors } : {}),
+        ...(process.env.NODE_ENV !== "production" ? { stack: err?.stack } : {}),
+    });
+}

@@ -123,7 +123,15 @@ export const refreshToken = asyncHandler(
 
 // ---------------- public: logout ----------------
 export const logout = asyncHandler(async (_req: Request, res: Response) => {
-  // If you want to invalidate access tokens server-side, store lastLogoutAt on user as in prior message.
+  const aReq = _req as AuthenticatedRequest;
+  if (aReq.user?.id) {
+    // Update lastLogoutAt to invalidate existing tokens
+    await User.findByIdAndUpdate(aReq.user.id, {
+      lastLogoutAt: new Date(),
+      refreshTokenHash: null,
+      refreshTokenExpiresAt: null,
+    });
+  }
   clearAuthCookies(res);
   ApiResponse(res, 200, "Logged out", {});
 });
@@ -149,7 +157,7 @@ export async function renderResetPasswordPage(req: Request, res: Response) {
   });
 
   if (!user) {
-    return res.status(400).render("auth/resetForm", {
+    return res.status(400).render("auth/resetForm.ejs", {
       title: "Password reset",
       token: null,
       error: "This reset link is invalid or has expired.",

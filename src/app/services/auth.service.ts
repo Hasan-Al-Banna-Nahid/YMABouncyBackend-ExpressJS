@@ -91,13 +91,14 @@ export const login = async (email: string, password: string) => {
 // --- FORGOT PASSWORD ---
 export const forgotPassword = async (email: string) => {
   const user = await User.findOne({ email });
-  if (!user)
+  if (!user) {
     throw new ApiError("There is no user with that email address.", 404);
+  }
 
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
-  const resetURL = `${BASE_URL}/auth/reset-password/${resetToken}`;
+  const resetURL = `${process.env.BASE_URL}/auth/reset-password/${resetToken}`;
 
   try {
     await sendPasswordResetEmail(
@@ -107,8 +108,9 @@ export const forgotPassword = async (email: string) => {
     );
     return resetToken;
   } catch (err: any) {
-    user.passwordResetToken = undefined as any;
-    user.passwordResetExpires = undefined as any;
+    console.error("Email send error:", err.message); // Log for debugging
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
     await user.save({ validateBeforeSave: false });
     throw new ApiError(
       "There was an error sending the email. Try again later!",
