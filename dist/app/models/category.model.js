@@ -1,4 +1,5 @@
 "use strict";
+// src/interfaces/category.interface.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -32,28 +33,41 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/routes/product.routes.ts
-const express_1 = __importDefault(require("express"));
-const productController = __importStar(require("../controllers/product.controller"));
-const auth_middleware_1 = require("../middlewares/auth.middleware");
-const cloudinary_util_1 = require("../utils/cloudinary.util");
-const router = express_1.default.Router();
-// Configure multer for multiple file uploads
-const uploadProductImages = cloudinary_util_1.upload.fields([
-    { name: "imageCover", maxCount: 1 },
-    { name: "images", maxCount: 10 },
-]);
-// Public routes
-router.get("/locations/filters", productController.getAvailableLocations);
-router.get("/", productController.getProducts);
-router.get("/:id", productController.getProduct);
-// Protected routes (Admin only)
-router.use(auth_middleware_1.protectRoute, (0, auth_middleware_1.restrictTo)("admin"));
-router.post("/", uploadProductImages, productController.createProduct);
-router.patch("/:id", uploadProductImages, productController.updateProduct);
-router.delete("/:id", productController.deleteProduct);
-exports.default = router;
+// src/models/category.model.ts
+const mongoose_1 = __importStar(require("mongoose"));
+const categorySchema = new mongoose_1.Schema({
+    name: {
+        type: String,
+        required: [true, "A category must have a name"],
+        unique: true,
+        trim: true,
+        maxlength: [
+            50,
+            "A category name must have less or equal than 50 characters",
+        ],
+        minlength: [
+            3,
+            "A category name must have more or equal than 3 characters",
+        ],
+    },
+    slug: String,
+    description: {
+        type: String,
+        trim: true,
+    },
+    image: {
+        type: String,
+    },
+    isActive: {
+        type: Boolean,
+        default: true,
+    },
+}, {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+});
+categorySchema.index({ slug: 1 });
+const Category = mongoose_1.default.model("Category", categorySchema);
+exports.default = Category;

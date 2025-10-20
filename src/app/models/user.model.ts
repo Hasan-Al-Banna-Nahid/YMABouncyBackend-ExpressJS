@@ -1,4 +1,4 @@
-// src/app/models/user.model.ts
+// src/models/user.model.ts
 import mongoose, { Schema } from "mongoose";
 import jwt, { Secret, SignOptions } from "jsonwebtoken";
 import crypto from "crypto";
@@ -30,20 +30,15 @@ const userSchema = new Schema<IUser, IUserModel, IUserMethods>(
       default: "user",
       required: true,
       index: true,
-      select: false,
+      // REMOVED: select: false - This was causing the issue!
     },
-
     password: { type: String, minlength: 8, select: false },
     passwordChangedAt: { type: Date, index: true },
-
     passwordResetToken: String,
     passwordResetExpires: Date,
-
     lastLogoutAt: Date,
-
     refreshTokenHash: { type: String, select: false },
     refreshTokenExpiresAt: { type: Date, select: false },
-
     active: { type: Boolean, default: true, select: false, index: true },
   },
   {
@@ -56,6 +51,12 @@ const userSchema = new Schema<IUser, IUserModel, IUserMethods>(
           delete ret._id;
         }
         delete ret.__v;
+        // Also remove sensitive fields from JSON output
+        delete ret.password;
+        delete ret.refreshTokenHash;
+        delete ret.refreshTokenExpiresAt;
+        delete ret.passwordResetToken;
+        delete ret.passwordResetExpires;
       },
     },
     toObject: { virtuals: true },
@@ -90,14 +91,14 @@ userSchema.method(
 );
 
 // Tolerant comparator (1s skew)
-userSchema.methods.changedPasswordAfter = function (JWTTimestamp: number) {
+userSchema.method("changedPasswordAfter", function (JWTTimestamp: number) {
   if (this.passwordChangedAt) {
     const changedTsSec =
       Math.floor(this.passwordChangedAt.getTime() / 1000) - 1;
     return JWTTimestamp < changedTsSec;
   }
   return false;
-};
+});
 
 userSchema.method("signAccessToken", function (): string {
   const secret: Secret = process.env.JWT_SECRET!;

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uploadToCloudinary = exports.upload = void 0;
+exports.deleteFromCloudinary = exports.uploadToCloudinary = exports.upload = void 0;
 // src/utils/cloudinary.util.ts
 const cloudinary_1 = require("cloudinary");
 const multer_storage_cloudinary_1 = require("multer-storage-cloudinary");
@@ -14,7 +14,7 @@ dotenv_1.default.config();
 if (!process.env.CLOUDINARY_CLOUD_NAME ||
     !process.env.CLOUDINARY_API_KEY ||
     !process.env.CLOUDINARY_API_SECRET) {
-    new Error("Cloudinary environment variables are not defined");
+    throw new Error("Cloudinary environment variables are not defined");
 }
 // Configure Cloudinary
 cloudinary_1.v2.config({
@@ -26,10 +26,10 @@ cloudinary_1.v2.config({
 const storage = new multer_storage_cloudinary_1.CloudinaryStorage({
     cloudinary: cloudinary_1.v2,
     params: {
-        folder: "user-photos", // Folder in Cloudinary to store images
-        allowed_formats: ["jpg", "png", "jpeg"],
-        transformation: [{ width: 500, height: 500, crop: "limit" }],
-    }, // Type assertion to avoid strict type issues with Cloudinary params
+        folder: "ecommerce",
+        allowed_formats: ["jpg", "png", "jpeg", "webp"],
+        transformation: [{ width: 1200, height: 800, crop: "limit" }],
+    },
 });
 // Multer middleware for handling file uploads
 exports.upload = (0, multer_1.default)({
@@ -40,10 +40,20 @@ exports.upload = (0, multer_1.default)({
 const uploadToCloudinary = async (file) => {
     try {
         const result = await cloudinary_1.v2.uploader.upload(file.path);
-        return result.secure_url; // Return the secure URL of the uploaded image
+        return result.secure_url;
     }
     catch (error) {
-        new Error(`Cloudinary upload failed: ${error.message}`);
+        throw new Error(`Cloudinary upload failed: ${error.message}`);
     }
 };
 exports.uploadToCloudinary = uploadToCloudinary;
+// Utility to delete file from Cloudinary
+const deleteFromCloudinary = async (publicId) => {
+    try {
+        await cloudinary_1.v2.uploader.destroy(publicId);
+    }
+    catch (error) {
+        throw new Error(`Cloudinary delete failed: ${error.message}`);
+    }
+};
+exports.deleteFromCloudinary = deleteFromCloudinary;

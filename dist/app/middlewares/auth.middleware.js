@@ -8,42 +8,53 @@ exports.restrictTo = restrictTo;
 const asyncHandler_1 = __importDefault(require("../utils/asyncHandler"));
 const apiError_1 = __importDefault(require("../utils/apiError"));
 const auth_service_1 = require("../services/auth.service");
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-// export const protectRoute = asyncHandler(async (req: Request, _res: Response, next: NextFunction) => {
-//   const headerToken = req.headers.authorization?.startsWith("Bearer ")
-//     ? req.headers.authorization.split(" ")[1]
-//     : undefined;
-//   const cookieToken = req.cookies?.accessToken as string | undefined;
-//   const token = headerToken || cookieToken;
-//   if (!token)  throw ApiError("No token provided", 401);
-//   const currentUser = await verifyAccessToken(token);
-//   (req as AuthenticatedRequest).user = currentUser;
-//   next();
-// });
-function restrictTo(...roles) {
-    return (req, _res, next) => {
-        const aReq = req;
-        if (!aReq.user || !roles.includes(aReq.user.role)) {
-            throw new apiError_1.default("Unauthorized", 403);
-        }
-        next();
-    };
-}
 exports.protectRoute = (0, asyncHandler_1.default)(async (req, _res, next) => {
     const cookieToken = req.cookies?.accessToken;
     const headerToken = req.headers.authorization?.startsWith("Bearer ")
         ? req.headers.authorization.split(" ")[1]
         : undefined;
     let tokenToUse = cookieToken || headerToken;
-    // If both exist (common when the client sends an old header token), choose the newer by iat
-    if (cookieToken && headerToken && headerToken !== cookieToken) {
-        const ciat = jsonwebtoken_1.default.decode(cookieToken)?.iat ?? 0;
-        const hiat = jsonwebtoken_1.default.decode(headerToken)?.iat ?? 0;
-        tokenToUse = ciat >= hiat ? cookieToken : headerToken;
-    }
+    // Debug logging
+    console.log("🔐 Auth Debug:", {
+        hasCookieToken: !!cookieToken,
+        hasHeaderToken: !!headerToken,
+        tokenToUse: tokenToUse ? "Present" : "Missing",
+    });
     if (!tokenToUse)
         throw new apiError_1.default("No token provided", 401);
     const currentUser = await (0, auth_service_1.protect)(tokenToUse);
+    // Debug user info - check if role is present
+    console.log("👤 User Debug:", {
+        userId: currentUser._id,
+        email: currentUser.email,
+        role: currentUser.role,
+        hasRole: !!currentUser.role,
+        isActive: currentUser.active,
+    });
+    // Ensure role exists
+    if (!currentUser.role) {
+        console.error("❌ User role is missing!");
+        throw new apiError_1.default("User role not found", 401);
+    }
     req.user = currentUser;
     next();
 });
+function restrictTo(...roles) {
+    return (req, _res, next) => {
+        const aReq = req;
+        // Debug role check
+        console.log("🔒 Role Check Debug:", {
+            userRole: aReq.user?.role,
+            requiredRoles: roles,
+            hasUser: !!aReq.user,
+            userAuthorized: aReq.user && roles.includes(aReq.user.role),
+        });
+        if (!aReq.user) {
+            throw new apiError_1.default("Authentication required", 401);
+        }
+        if (!roles.includes(aReq.user.role)) {
+            throw new apiError_1.default(`Unauthorized - Required roles: ${roles.join(", ")}, Your role: ${aReq.user.role}`, 403);
+        }
+        next();
+    };
+}

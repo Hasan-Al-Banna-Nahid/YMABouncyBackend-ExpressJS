@@ -6,10 +6,13 @@ import authRouter from "./app/routes/auth.route";
 import bookingRouter from "./app/routes/booking.route";
 import inventoryRouter from "./app/routes/inventory.route";
 import invoiceRouter from "./app/routes/invoice.route";
-import productRouter from "./app/routes/product.route";
 import adminRoutes from "./app/routes/admin.routes";
 import { globalErrorHandler } from "./app/utils/apiError";
 import mailRoute from "./app/routes/mail.route";
+import categoryRoutes from "./app/routes/category.routes";
+import productRoutes from "./app/routes/product.route";
+import cartRoutes from "./app/routes/cart.routes";
+import locationRoutes from "./app/routes/location.routes";
 
 const app = express();
 
@@ -47,9 +50,12 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/bookings", bookingRouter);
 app.use("/api/v1/inventory", inventoryRouter);
 app.use("/api/v1/invoices", invoiceRouter);
-app.use("/api/v1/products", productRouter);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/mail", mailRoute);
+app.use("/api/v1/locations", locationRoutes); // Add this line
+app.use("/api/v1/categories", categoryRoutes);
+app.use("/api/v1/products", productRoutes);
+app.use("/api/v1/cart", cartRoutes);
 
 // Health check
 app.get("/healthz", (_req, res) => res.json({ ok: true }));

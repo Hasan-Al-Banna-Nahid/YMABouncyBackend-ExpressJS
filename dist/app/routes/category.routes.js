@@ -36,24 +36,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/routes/product.routes.ts
+// src/routes/category.routes.ts
 const express_1 = __importDefault(require("express"));
-const productController = __importStar(require("../controllers/product.controller"));
+const categoryController = __importStar(require("../controllers/category.controller"));
 const auth_middleware_1 = require("../middlewares/auth.middleware");
 const cloudinary_util_1 = require("../utils/cloudinary.util");
 const router = express_1.default.Router();
-// Configure multer for multiple file uploads
-const uploadProductImages = cloudinary_util_1.upload.fields([
-    { name: "imageCover", maxCount: 1 },
-    { name: "images", maxCount: 10 },
-]);
-// Public routes
-router.get("/locations/filters", productController.getAvailableLocations);
-router.get("/", productController.getProducts);
-router.get("/:id", productController.getProduct);
-// Protected routes (Admin only)
-router.use(auth_middleware_1.protectRoute, (0, auth_middleware_1.restrictTo)("admin"));
-router.post("/", uploadProductImages, productController.createProduct);
-router.patch("/:id", uploadProductImages, productController.updateProduct);
-router.delete("/:id", productController.deleteProduct);
+router
+    .route("/")
+    .get(categoryController.getCategories)
+    .post(auth_middleware_1.protectRoute, (0, auth_middleware_1.restrictTo)("admin"), cloudinary_util_1.upload.single("image"), categoryController.createCategory);
+router
+    .route("/:id")
+    .get(categoryController.getCategory)
+    .patch(auth_middleware_1.protectRoute, (0, auth_middleware_1.restrictTo)("admin"), cloudinary_util_1.upload.single("image"), categoryController.updateCategory)
+    .delete(auth_middleware_1.protectRoute, (0, auth_middleware_1.restrictTo)("admin"), categoryController.deleteCategory);
 exports.default = router;

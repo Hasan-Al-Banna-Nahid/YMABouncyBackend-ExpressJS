@@ -12,7 +12,7 @@ if (
   !process.env.CLOUDINARY_API_KEY ||
   !process.env.CLOUDINARY_API_SECRET
 ) {
-  new Error("Cloudinary environment variables are not defined");
+  throw new Error("Cloudinary environment variables are not defined");
 }
 
 // Configure Cloudinary
@@ -26,10 +26,10 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "user-photos", // Folder in Cloudinary to store images
-    allowed_formats: ["jpg", "png", "jpeg"],
-    transformation: [{ width: 500, height: 500, crop: "limit" }],
-  } as any, // Type assertion to avoid strict type issues with Cloudinary params
+    folder: "ecommerce",
+    allowed_formats: ["jpg", "png", "jpeg", "webp"],
+    transformation: [{ width: 1200, height: 800, crop: "limit" }],
+  } as any,
 });
 
 // Multer middleware for handling file uploads
@@ -41,11 +41,20 @@ export const upload = multer({
 // Utility to upload a single file to Cloudinary
 export const uploadToCloudinary = async (
   file: Express.Multer.File
-): Promise<any> => {
+): Promise<string> => {
   try {
     const result = await cloudinary.uploader.upload(file.path);
-    return result.secure_url; // Return the secure URL of the uploaded image
+    return result.secure_url;
   } catch (error: any) {
-    new Error(`Cloudinary upload failed: ${error.message}`);
+    throw new Error(`Cloudinary upload failed: ${error.message}`);
+  }
+};
+
+// Utility to delete file from Cloudinary
+export const deleteFromCloudinary = async (publicId: string): Promise<void> => {
+  try {
+    await cloudinary.uploader.destroy(publicId);
+  } catch (error: any) {
+    throw new Error(`Cloudinary delete failed: ${error.message}`);
   }
 };

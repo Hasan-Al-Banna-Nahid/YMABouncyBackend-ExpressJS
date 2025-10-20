@@ -1,33 +1,27 @@
-import express from 'express';
-import {
-    createProductHandler,
-    getProductHandler,
-    getProductsHandler,
-    updateProductHandler,
-    deleteProductHandler,
-    getFeaturedProductsHandler,
-    getRelatedProductsHandler,
-    searchProductsHandler,
-} from '../controllers/product.controller';
-import { protectRoute, restrictTo } from '../middlewares/auth.middleware';
+// src/routes/product.routes.ts
+import express from "express";
+import * as productController from "../controllers/product.controller";
+import { protectRoute, restrictTo } from "../middlewares/auth.middleware";
+import { upload } from "../utils/cloudinary.util";
 
 const router = express.Router();
 
+// Configure multer for multiple file uploads
+const uploadProductImages = upload.fields([
+  { name: "imageCover", maxCount: 1 },
+  { name: "images", maxCount: 10 },
+]);
+
 // Public routes
-router.get("/", getProductsHandler);
-router.get("/featured", getFeaturedProductsHandler);
-router.get("/related/:productId", getRelatedProductsHandler);
-router.get("/search", searchProductsHandler);
-router.get("/:id", getProductHandler);
+router.get("/locations/filters", productController.getAvailableLocations);
+router.get("/", productController.getProducts);
+router.get("/:id", productController.getProduct);
 
-// Protect all routes after this middleware
-router.use(protectRoute);
+// Protected routes (Admin only)
+router.use(protectRoute, restrictTo("admin"));
 
-// Admin only routes
-router.use(restrictTo('admin'));
-
-router.post('/', createProductHandler);
-router.patch('/:id', updateProductHandler);
-router.delete('/:id', deleteProductHandler);
+router.post("/", uploadProductImages, productController.createProduct);
+router.patch("/:id", uploadProductImages, productController.updateProduct);
+router.delete("/:id", productController.deleteProduct);
 
 export default router;

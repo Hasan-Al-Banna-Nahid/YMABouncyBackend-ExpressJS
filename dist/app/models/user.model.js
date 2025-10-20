@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/app/models/user.model.ts
+// src/models/user.model.ts
 const mongoose_1 = __importStar(require("mongoose"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const crypto_1 = __importDefault(require("crypto"));
@@ -65,7 +65,7 @@ const userSchema = new mongoose_1.Schema({
         default: "user",
         required: true,
         index: true,
-        select: false,
+        // REMOVED: select: false - This was causing the issue!
     },
     password: { type: String, minlength: 8, select: false },
     passwordChangedAt: { type: Date, index: true },
@@ -85,6 +85,12 @@ const userSchema = new mongoose_1.Schema({
                 delete ret._id;
             }
             delete ret.__v;
+            // Also remove sensitive fields from JSON output
+            delete ret.password;
+            delete ret.refreshTokenHash;
+            delete ret.refreshTokenExpiresAt;
+            delete ret.passwordResetToken;
+            delete ret.passwordResetExpires;
         },
     },
     toObject: { virtuals: true },
@@ -112,13 +118,13 @@ userSchema.method("correctPassword", async function (candidate, hashed) {
     return bcryptjs_1.default.compare(candidate, hashed);
 });
 // Tolerant comparator (1s skew)
-userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
+userSchema.method("changedPasswordAfter", function (JWTTimestamp) {
     if (this.passwordChangedAt) {
         const changedTsSec = Math.floor(this.passwordChangedAt.getTime() / 1000) - 1;
         return JWTTimestamp < changedTsSec;
     }
     return false;
-};
+});
 userSchema.method("signAccessToken", function () {
     const secret = process.env.JWT_SECRET;
     const options = {

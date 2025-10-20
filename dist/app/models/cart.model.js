@@ -1,4 +1,5 @@
 "use strict";
+// src/interfaces/cart.interface.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -32,28 +33,50 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/routes/product.routes.ts
-const express_1 = __importDefault(require("express"));
-const productController = __importStar(require("../controllers/product.controller"));
-const auth_middleware_1 = require("../middlewares/auth.middleware");
-const cloudinary_util_1 = require("../utils/cloudinary.util");
-const router = express_1.default.Router();
-// Configure multer for multiple file uploads
-const uploadProductImages = cloudinary_util_1.upload.fields([
-    { name: "imageCover", maxCount: 1 },
-    { name: "images", maxCount: 10 },
-]);
-// Public routes
-router.get("/locations/filters", productController.getAvailableLocations);
-router.get("/", productController.getProducts);
-router.get("/:id", productController.getProduct);
-// Protected routes (Admin only)
-router.use(auth_middleware_1.protectRoute, (0, auth_middleware_1.restrictTo)("admin"));
-router.post("/", uploadProductImages, productController.createProduct);
-router.patch("/:id", uploadProductImages, productController.updateProduct);
-router.delete("/:id", productController.deleteProduct);
-exports.default = router;
+// src/models/cart.model.ts
+const mongoose_1 = __importStar(require("mongoose"));
+const cartItemSchema = new mongoose_1.Schema({
+    product: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Product",
+        required: true,
+    },
+    quantity: {
+        type: Number,
+        required: true,
+        min: 1,
+        default: 1,
+    },
+    price: {
+        type: Number,
+        required: true,
+    },
+});
+const cartSchema = new mongoose_1.Schema({
+    user: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+        unique: true,
+    },
+    items: [cartItemSchema],
+    totalPrice: {
+        type: Number,
+        default: 0,
+    },
+    totalItems: {
+        type: Number,
+        default: 0,
+    },
+}, {
+    timestamps: true,
+});
+// Calculate totals before saving with proper TypeScript typing
+cartSchema.pre("save", function (next) {
+    this.totalItems = this.items.reduce((total, item) => total + item.quantity, 0);
+    this.totalPrice = this.items.reduce((total, item) => total + item.quantity * item.price, 0);
+    next();
+});
+const Cart = mongoose_1.default.model("Cart", cartSchema);
+exports.default = Cart;
