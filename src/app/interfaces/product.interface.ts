@@ -3,10 +3,37 @@ import mongoose from "mongoose";
 
 export interface IProduct {
   name: string;
-  slug?: string;
+  subtitle?: string;
   description: string;
-  summary?: string;
+  specifications: {
+    key: string;
+    value: string;
+  }[];
+  safetyQuality: {
+    key: string;
+    value: string;
+  }[];
+  sizes: {
+    name: string;
+    dimensions: string;
+    capacity?: string;
+    weight?: string;
+  }[];
+  colors: {
+    name: string;
+    hexCode: string;
+    description?: string;
+  }[];
+  features: {
+    bouncer: boolean;
+    versatility: boolean;
+    indoor: boolean;
+    outdoor: boolean;
+    delivery: boolean;
+    collection: boolean;
+  };
   price: number;
+  priceUnit: "per_day" | "per_week" | "per_month";
   priceDiscount?: number;
   images: string[];
   imageCover: string;
@@ -16,11 +43,7 @@ export interface IProduct {
   duration: number;
   maxGroupSize: number;
   difficulty: "easy" | "medium" | "difficult";
-
-  // Updated location field - reference to Location model
   location: mongoose.Types.ObjectId;
-
-  // Date fields for availability
   availableFrom: Date;
   availableUntil: Date;
   isActive?: boolean;

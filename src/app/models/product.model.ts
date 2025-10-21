@@ -14,25 +14,123 @@ const productSchema: Schema = new Schema(
         100,
         "A product name must have less or equal than 100 characters",
       ],
-      minlength: [
-        10,
-        "A product name must have more or equal than 10 characters",
-      ],
     },
-    slug: String,
+    subtitle: {
+      type: String,
+      trim: true,
+      maxlength: [200, "Subtitle must have less or equal than 200 characters"],
+    },
     description: {
       type: String,
       required: [true, "A product must have a description"],
       trim: true,
     },
-    summary: {
-      type: String,
-      trim: true,
+    specifications: [
+      {
+        key: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        value: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+      },
+    ],
+    safetyQuality: [
+      {
+        key: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        value: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+      },
+    ],
+    sizes: [
+      {
+        name: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        dimensions: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        capacity: {
+          type: String,
+          trim: true,
+        },
+        weight: {
+          type: String,
+          trim: true,
+        },
+      },
+    ],
+    colors: [
+      {
+        name: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        hexCode: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        description: {
+          type: String,
+          trim: true,
+        },
+      },
+    ],
+    features: {
+      bouncer: {
+        type: Boolean,
+        default: false,
+      },
+      versatility: {
+        type: Boolean,
+        default: false,
+      },
+      indoor: {
+        type: Boolean,
+        default: false,
+      },
+      outdoor: {
+        type: Boolean,
+        default: false,
+      },
+      delivery: {
+        type: Boolean,
+        default: false,
+      },
+      collection: {
+        type: Boolean,
+        default: false,
+      },
     },
     price: {
       type: Number,
       required: [true, "A product must have a price"],
       min: [0, "Price must be above 0"],
+    },
+    priceUnit: {
+      type: String,
+      required: [true, "A product must have a price unit"],
+      enum: {
+        values: ["per_day", "per_week", "per_month"],
+        message: "Price unit must be: per_day, per_week, or per_month",
+      },
     },
     priceDiscount: {
       type: Number,
@@ -81,13 +179,11 @@ const productSchema: Schema = new Schema(
         message: "Difficulty is either: easy, medium, difficult",
       },
     },
-    // Reference to Location model
     location: {
       type: Schema.Types.ObjectId,
       ref: "Location",
       required: [true, "A product must have a location"],
     },
-    // Date availability
     availableFrom: {
       type: Date,
       required: [true, "A product must have an available from date"],
@@ -107,24 +203,21 @@ const productSchema: Schema = new Schema(
       default: true,
       select: false,
     },
-    createdAt: {
-      type: Date,
-      default: Date.now(),
-      select: false,
-    },
   },
   {
+    timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
 );
 
-// Indexes for better query performance
+// Indexes
 productSchema.index({ price: 1, ratingsAverage: -1 });
-productSchema.index({ slug: 1 });
 productSchema.index({ location: 1 });
 productSchema.index({ availableFrom: 1, availableUntil: 1 });
 productSchema.index({ isActive: 1 });
+productSchema.index({ "features.bouncer": 1 });
+productSchema.index({ "features.delivery": 1 });
 
 // Virtual populate
 productSchema.virtual("reviews", {

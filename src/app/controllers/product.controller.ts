@@ -24,6 +24,17 @@ export const createProduct = asyncHandler(
       }
     }
 
+    // Parse complex fields from JSON strings
+    const specifications = req.body.specifications
+      ? JSON.parse(req.body.specifications)
+      : [];
+    const safetyQuality = req.body.safetyQuality
+      ? JSON.parse(req.body.safetyQuality)
+      : [];
+    const sizes = req.body.sizes ? JSON.parse(req.body.sizes) : [];
+    const colors = req.body.colors ? JSON.parse(req.body.colors) : [];
+    const features = req.body.features ? JSON.parse(req.body.features) : {};
+
     // Parse request data
     const productData = {
       ...req.body,
@@ -39,6 +50,20 @@ export const createProduct = asyncHandler(
         : undefined,
       duration: parseInt(req.body.duration),
       maxGroupSize: parseInt(req.body.maxGroupSize),
+      ratingsAverage: req.body.ratingsAverage
+        ? parseFloat(req.body.ratingsAverage)
+        : 4.5,
+      ratingsQuantity: req.body.ratingsQuantity
+        ? parseInt(req.body.ratingsQuantity)
+        : 0,
+      // New fields
+      subtitle: req.body.subtitle,
+      specifications,
+      safetyQuality,
+      sizes,
+      colors,
+      features,
+      priceUnit: req.body.priceUnit || "per_day",
     };
 
     const product = await productService.createProduct(productData);
@@ -52,6 +77,7 @@ export const createProduct = asyncHandler(
   }
 );
 
+// ... (keep your other existing controller functions)
 export const getProducts = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { products, total } = await productService.getAllProducts(req.query);
@@ -104,27 +130,31 @@ export const updateProduct = asyncHandler(
     };
 
     // Parse specific fields if provided
-    if (req.body.categories) {
+    if (req.body.categories)
       updateData.categories = JSON.parse(req.body.categories);
-    }
-    if (req.body.availableFrom) {
+    if (req.body.availableFrom)
       updateData.availableFrom = new Date(req.body.availableFrom);
-    }
-    if (req.body.availableUntil) {
+    if (req.body.availableUntil)
       updateData.availableUntil = new Date(req.body.availableUntil);
-    }
-    if (req.body.price) {
-      updateData.price = parseFloat(req.body.price);
-    }
-    if (req.body.priceDiscount) {
+    if (req.body.price) updateData.price = parseFloat(req.body.price);
+    if (req.body.priceDiscount)
       updateData.priceDiscount = parseFloat(req.body.priceDiscount);
-    }
-    if (req.body.duration) {
-      updateData.duration = parseInt(req.body.duration);
-    }
-    if (req.body.maxGroupSize) {
+    if (req.body.duration) updateData.duration = parseInt(req.body.duration);
+    if (req.body.maxGroupSize)
       updateData.maxGroupSize = parseInt(req.body.maxGroupSize);
-    }
+    if (req.body.ratingsAverage)
+      updateData.ratingsAverage = parseFloat(req.body.ratingsAverage);
+    if (req.body.ratingsQuantity)
+      updateData.ratingsQuantity = parseInt(req.body.ratingsQuantity);
+
+    // Parse new fields
+    if (req.body.specifications)
+      updateData.specifications = JSON.parse(req.body.specifications);
+    if (req.body.safetyQuality)
+      updateData.safetyQuality = JSON.parse(req.body.safetyQuality);
+    if (req.body.sizes) updateData.sizes = JSON.parse(req.body.sizes);
+    if (req.body.colors) updateData.colors = JSON.parse(req.body.colors);
+    if (req.body.features) updateData.features = JSON.parse(req.body.features);
 
     // If new images are uploaded, replace the existing ones
     if (imagesUrls.length > 0) {
