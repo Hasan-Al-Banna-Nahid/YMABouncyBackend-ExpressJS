@@ -16,6 +16,7 @@ export interface IProduct {
   location: mongoose.Types.ObjectId;
   availableFrom: Date;
   availableUntil: Date;
+  size?: string; // New size field
   isActive?: boolean;
   createdAt?: Date;
 }

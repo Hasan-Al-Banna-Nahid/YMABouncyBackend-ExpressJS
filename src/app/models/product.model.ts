@@ -73,6 +73,22 @@ const productSchema: Schema = new Schema(
         message: "Difficulty is either: easy, medium, difficult",
       },
     },
+    // New size field
+    size: {
+      type: String,
+      trim: true,
+      maxlength: [50, "Size must have less or equal than 50 characters"],
+      validate: {
+        validator: function (value: string) {
+          // Validate size format like "10 ft(w) * 5 ft(h)" or "15x15 ft"
+          if (!value) return true; // Optional field
+          const sizeRegex =
+            /^(\d+(\.\d+)?\s*(ft|m)(\s*\([wh]\))?\s*[\*x×]\s*)*\d+(\.\d+)?\s*(ft|m)(\s*\([wh]\))?$/i;
+          return sizeRegex.test(value);
+        },
+        message: "Size format should be like: 10 ft(w) * 5 ft(h) or 15x15 ft",
+      },
+    },
     location: {
       type: Schema.Types.ObjectId,
       ref: "Location",
@@ -111,6 +127,7 @@ productSchema.index({ location: 1 });
 productSchema.index({ availableFrom: 1, availableUntil: 1 });
 productSchema.index({ isActive: 1 });
 productSchema.index({ difficulty: 1 });
+productSchema.index({ size: 1 }); // New index for size
 
 // Virtual populate
 productSchema.virtual("reviews", {

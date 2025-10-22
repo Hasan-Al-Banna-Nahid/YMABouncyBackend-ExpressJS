@@ -40,6 +40,7 @@ export const createProduct = asyncHandler(
       location: req.body.location,
       availableFrom: new Date(req.body.availableFrom),
       availableUntil: new Date(req.body.availableUntil),
+      size: req.body.size, // New size field
       ...(imageCoverUrl && { imageCover: imageCoverUrl }),
       ...(imagesUrls.length > 0 && { images: imagesUrls }),
     };
@@ -47,34 +48,6 @@ export const createProduct = asyncHandler(
     const product = await productService.createProduct(productData);
 
     res.status(201).json({
-      status: "success",
-      data: {
-        product,
-      },
-    });
-  }
-);
-
-export const getProducts = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const { products, total } = await productService.getAllProducts(req.query);
-
-    res.status(200).json({
-      status: "success",
-      results: products.length,
-      total,
-      data: {
-        products,
-      },
-    });
-  }
-);
-
-export const getProduct = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const product = await productService.getProductById(req.params.id);
-
-    res.status(200).json({
       status: "success",
       data: {
         product,
@@ -118,6 +91,7 @@ export const updateProduct = asyncHandler(
     if (req.body.duration) updateData.duration = parseInt(req.body.duration);
     if (req.body.maxGroupSize)
       updateData.maxGroupSize = parseInt(req.body.maxGroupSize);
+    if (req.body.size) updateData.size = req.body.size; // New size field
 
     // Handle image updates
     if (imageCoverUrl) updateData.imageCover = imageCoverUrl;
@@ -127,6 +101,35 @@ export const updateProduct = asyncHandler(
       req.params.id,
       updateData
     );
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        product,
+      },
+    });
+  }
+);
+
+// ... (keep other functions same as before)
+export const getProducts = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { products, total } = await productService.getAllProducts(req.query);
+
+    res.status(200).json({
+      status: "success",
+      results: products.length,
+      total,
+      data: {
+        products,
+      },
+    });
+  }
+);
+
+export const getProduct = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const product = await productService.getProductById(req.params.id);
 
     res.status(200).json({
       status: "success",
