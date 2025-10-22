@@ -24,46 +24,24 @@ export const createProduct = asyncHandler(
       }
     }
 
-    // Parse complex fields from JSON strings
-    const specifications = req.body.specifications
-      ? JSON.parse(req.body.specifications)
-      : [];
-    const safetyQuality = req.body.safetyQuality
-      ? JSON.parse(req.body.safetyQuality)
-      : [];
-    const sizes = req.body.sizes ? JSON.parse(req.body.sizes) : [];
-    const colors = req.body.colors ? JSON.parse(req.body.colors) : [];
-    const features = req.body.features ? JSON.parse(req.body.features) : {};
-
     // Parse request data
     const productData = {
-      ...req.body,
-      ...(imageCoverUrl && { imageCover: imageCoverUrl }),
-      ...(imagesUrls.length > 0 && { images: imagesUrls }),
-      categories: req.body.categories ? JSON.parse(req.body.categories) : [],
-      location: req.body.location,
-      availableFrom: new Date(req.body.availableFrom),
-      availableUntil: new Date(req.body.availableUntil),
+      name: req.body.name,
+      description: req.body.description,
+      summary: req.body.summary,
       price: parseFloat(req.body.price),
       priceDiscount: req.body.priceDiscount
         ? parseFloat(req.body.priceDiscount)
         : undefined,
       duration: parseInt(req.body.duration),
       maxGroupSize: parseInt(req.body.maxGroupSize),
-      ratingsAverage: req.body.ratingsAverage
-        ? parseFloat(req.body.ratingsAverage)
-        : 4.5,
-      ratingsQuantity: req.body.ratingsQuantity
-        ? parseInt(req.body.ratingsQuantity)
-        : 0,
-      // New fields
-      subtitle: req.body.subtitle,
-      specifications,
-      safetyQuality,
-      sizes,
-      colors,
-      features,
-      priceUnit: req.body.priceUnit || "per_day",
+      difficulty: req.body.difficulty,
+      categories: req.body.categories ? JSON.parse(req.body.categories) : [],
+      location: req.body.location,
+      availableFrom: new Date(req.body.availableFrom),
+      availableUntil: new Date(req.body.availableUntil),
+      ...(imageCoverUrl && { imageCover: imageCoverUrl }),
+      ...(imagesUrls.length > 0 && { images: imagesUrls }),
     };
 
     const product = await productService.createProduct(productData);
@@ -77,7 +55,6 @@ export const createProduct = asyncHandler(
   }
 );
 
-// ... (keep your other existing controller functions)
 export const getProducts = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { products, total } = await productService.getAllProducts(req.query);
@@ -126,7 +103,6 @@ export const updateProduct = asyncHandler(
 
     const updateData: any = {
       ...req.body,
-      ...(imageCoverUrl && { imageCover: imageCoverUrl }),
     };
 
     // Parse specific fields if provided
@@ -142,24 +118,10 @@ export const updateProduct = asyncHandler(
     if (req.body.duration) updateData.duration = parseInt(req.body.duration);
     if (req.body.maxGroupSize)
       updateData.maxGroupSize = parseInt(req.body.maxGroupSize);
-    if (req.body.ratingsAverage)
-      updateData.ratingsAverage = parseFloat(req.body.ratingsAverage);
-    if (req.body.ratingsQuantity)
-      updateData.ratingsQuantity = parseInt(req.body.ratingsQuantity);
 
-    // Parse new fields
-    if (req.body.specifications)
-      updateData.specifications = JSON.parse(req.body.specifications);
-    if (req.body.safetyQuality)
-      updateData.safetyQuality = JSON.parse(req.body.safetyQuality);
-    if (req.body.sizes) updateData.sizes = JSON.parse(req.body.sizes);
-    if (req.body.colors) updateData.colors = JSON.parse(req.body.colors);
-    if (req.body.features) updateData.features = JSON.parse(req.body.features);
-
-    // If new images are uploaded, replace the existing ones
-    if (imagesUrls.length > 0) {
-      updateData.images = imagesUrls;
-    }
+    // Handle image updates
+    if (imageCoverUrl) updateData.imageCover = imageCoverUrl;
+    if (imagesUrls.length > 0) updateData.images = imagesUrls;
 
     const product = await productService.updateProduct(
       req.params.id,
