@@ -89,10 +89,13 @@ export const login = async (email: string, password: string) => {
 };
 
 // --- FORGOT PASSWORD ---
+// In auth.service.ts - forgotPassword function
 export const forgotPassword = async (email: string) => {
   const user = await User.findOne({ email });
   if (!user) {
-    throw new ApiError("There is no user with that email address.", 404);
+    // Don't reveal that email doesn't exist (security)
+    console.log(`Password reset requested for non-existent email: ${email}`);
+    return; // Silent success for security
   }
 
   const resetToken = user.createPasswordResetToken();
@@ -106,16 +109,38 @@ export const forgotPassword = async (email: string) => {
       (user as any).name || "there",
       resetURL
     );
+    console.log(`Password reset email sent to: ${user.email}`);
     return resetToken;
   } catch (err: any) {
-    console.error("Email send error:", err.message); // Log for debugging
+    console.error("🔴 SendGrid Email Error Details:", {
+      message: err.message,
+      code: err.code,
+      response: err.response?.body,
+      stack: err.stack,
+    });
+
+    // Reset the token since email failed
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save({ validateBeforeSave: false });
-    throw new ApiError(
-      "There was an error sending the email. Try again later!",
-      500
-    );
+
+    // More specific error messages
+    if (err.code === 401 || err.response?.statusCode === 401) {
+      throw new ApiError(
+        "Email service configuration error. Please contact support.",
+        500
+      );
+    } else if (err.code === 403) {
+      throw new ApiError(
+        "Email sending permission denied. Please contact support.",
+        500
+      );
+    } else {
+      throw new ApiError(
+        "There was an error sending the email. Try again later!",
+        500
+      );
+    }
   }
 };
 

@@ -15,7 +15,11 @@ if (!SENDGRID_API_KEY) throw new Error("SENDGRID_API_KEY is not set");
 if (!SENDGRID_FROM_EMAIL) throw new Error("SENDGRID_FROM_EMAIL is not set");
 
 sgMail.setApiKey(SENDGRID_API_KEY);
-
+// In your email.service.ts, add validation:
+if (!SENDGRID_API_KEY || SENDGRID_API_KEY.length < 20) {
+  throw new Error("SENDGRID_API_KEY is invalid or too short");
+}
+console.log("SendGrid API Key present:", SENDGRID_API_KEY ? "Yes" : "No");
 // ---------- template resolver ----------
 function resolveTemplatePath(name: string) {
   const candidates = [
@@ -62,13 +66,61 @@ export async function warmupEmail(): Promise<void> {
 }
 
 // ---------- core sender ----------
+// In email.service.ts - sendEmailHtml function
 export async function sendEmailHtml(to: string, subject: string, html: string) {
-  await sgMail.send({
-    to,
-    from: { email: SENDGRID_FROM_EMAIL, name: SENDGRID_FROM_NAME },
-    subject,
-    html,
-  });
+  try {
+    console.log("📧 Attempting to send email to:", to);
+
+    const msg = {
+      to,
+      from: {
+        email: SENDGRID_FROM_EMAIL,
+        name: SENDGRID_FROM_NAME,
+      },
+      subject,
+      html,
+    };
+
+    // Test SendGrid connection
+    console.log("🔧 SendGrid Config:", {
+      hasApiKey: !!SENDGRID_API_KEY,
+      fromEmail: SENDGRID_FROM_EMAIL,
+      fromName: SENDGRID_FROM_NAME,
+    });
+
+    const response = await sgMail.send(msg);
+    console.log("✅ Email sent successfully. Status:", response[0]?.statusCode);
+    return response;
+  } catch (error: any) {
+    console.error("🔴 SendGrid Raw Error:", {
+      name: error.name,
+      code: error.code,
+      message: error.message,
+      response: error.response
+        ? {
+            status: error.response.status,
+            headers: error.response.headers,
+            body: error.response.body,
+          }
+        : "No response",
+    });
+
+    // Handle specific SendGrid error codes
+    if (error.response) {
+      const { body, statusCode } = error.response;
+      console.error("SendGrid API Response:", body);
+
+      if (statusCode === 401) {
+        throw new Error("SendGrid: Unauthorized - Check your API key");
+      } else if (statusCode === 403) {
+        throw new Error("SendGrid: Forbidden - Check sending permissions");
+      } else if (statusCode === 429) {
+        throw new Error("SendGrid: Rate limit exceeded");
+      }
+    }
+
+    throw error;
+  }
 }
 
 // ---------- high-level helpers ----------
