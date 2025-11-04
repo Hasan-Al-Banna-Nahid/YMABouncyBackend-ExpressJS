@@ -13,6 +13,7 @@ import categoryRoutes from "./app/routes/category.routes";
 import productRoutes from "./app/routes/product.route";
 import cartRoutes from "./app/routes/cart.routes";
 import locationRoutes from "./app/routes/location.routes";
+import checkoutRoutes from "./app/routes/checkout.routes";
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use("/api/v1/locations", locationRoutes); // Add this line
 app.use("/api/v1/categories", categoryRoutes);
 app.use("/api/v1/products", productRoutes);
 app.use("/api/v1/cart", cartRoutes);
+app.use("/api/v1/checkout", checkoutRoutes);
 
 // Health check
 app.get("/healthz", (_req, res) => res.json({ ok: true }));

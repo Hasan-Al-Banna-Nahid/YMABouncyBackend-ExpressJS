@@ -1,4 +1,3 @@
-// src/services/cart.service.ts
 import Cart, { ICartModel } from "../models/cart.model";
 import Product from "../models/product.model";
 import ApiError from "../utils/apiError";
@@ -29,6 +28,11 @@ export const addItemToCart = async (
     throw new ApiError("Product not found", 404);
   }
 
+  // Check stock availability
+  if (product.stock < quantity) {
+    throw new ApiError(`Only ${product.stock} items available in stock`, 400);
+  }
+
   let cart = await Cart.findOne({ user: new Types.ObjectId(userId) });
 
   if (!cart) {
@@ -48,7 +52,17 @@ export const addItemToCart = async (
     );
 
     if (existingItemIndex > -1) {
-      cart.items[existingItemIndex].quantity += quantity;
+      const newQuantity = cart.items[existingItemIndex].quantity + quantity;
+
+      // Check stock for updated quantity
+      if (product.stock < newQuantity) {
+        throw new ApiError(
+          `Only ${product.stock} items available in stock`,
+          400
+        );
+      }
+
+      cart.items[existingItemIndex].quantity = newQuantity;
     } else {
       cart.items.push({
         product: new Types.ObjectId(productId),
@@ -70,6 +84,16 @@ export const updateCartItem = async (
 ): Promise<ICartModel> => {
   if (quantity < 1) {
     throw new ApiError("Quantity must be at least 1", 400);
+  }
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    throw new ApiError("Product not found", 404);
+  }
+
+  // Check stock availability
+  if (product.stock < quantity) {
+    throw new ApiError(`Only ${product.stock} items available in stock`, 400);
   }
 
   const cart = await Cart.findOne({ user: new Types.ObjectId(userId) });

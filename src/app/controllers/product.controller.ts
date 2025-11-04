@@ -70,6 +70,8 @@ export const createProduct = asyncHandler(
       location: req.body.location,
       availableFrom: availableFrom,
       availableUntil: availableUntil,
+      stock: req.body.stock ? parseInt(req.body.stock) : 0,
+
       size: req.body.size,
       ...(imageCoverUrl && { imageCover: imageCoverUrl }),
       ...(imagesUrls.length > 0 && { images: imagesUrls }),
@@ -181,7 +183,9 @@ export const updateProduct = asyncHandler(
       req.params.id,
       updateData
     );
-
+    if (req.body.stock !== undefined) {
+      updateData.stock = parseInt(req.body.stock);
+    }
     res.status(200).json({
       status: "success",
       data: {

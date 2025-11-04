@@ -113,6 +113,12 @@ const productSchema: Schema = new Schema(
       default: true,
       select: false,
     },
+    stock: {
+      type: Number,
+      required: [true, "A product must have stock quantity"],
+      min: [0, "Stock cannot be negative"],
+      default: 0,
+    },
   },
   {
     timestamps: true,

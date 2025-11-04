@@ -18,5 +18,7 @@ export interface IProduct {
   availableUntil: Date;
   size?: string; // New size field
   isActive?: boolean;
+  active: boolean;
   createdAt?: Date;
+  stock: number;
 }

@@ -1,25 +1,21 @@
-// src/interfaces/cart.interface.ts
-
-export interface ICartItem {
-  product: mongoose.Types.ObjectId;
-  quantity: number;
-  price: number;
-}
-
-export interface ICart {
-  user: mongoose.Schema.Types.ObjectId;
-  items: ICartItem[];
-  totalPrice: number;
-  totalItems: number;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-// src/models/cart.model.ts
 import mongoose, { Document, Schema } from "mongoose";
+import { ICart, ICartItem } from "../interfaces/cart.interface";
 
 export interface ICartItemModel extends ICartItem, Document {}
 export interface ICartModel extends ICart, Document {}
+
+// Interface for populated product in cart items
+export interface IPopulatedCartItem {
+  product: {
+    _id: mongoose.Types.ObjectId;
+    name: string;
+    price: number;
+    stock: number;
+    // Add other product fields you need
+  };
+  quantity: number;
+  price: number;
+}
 
 const cartItemSchema: Schema = new Schema({
   product: {
