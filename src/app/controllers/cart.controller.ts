@@ -18,20 +18,25 @@ export const getCart = asyncHandler(
   }
 );
 
+// src/controllers/cart.controller.ts
 export const addToCart = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = (req as AuthenticatedRequest).user._id.toString();
-    const { items } = req.body;
+    const { items, productId, quantity, startDate, endDate } = req.body;
 
-    // Support both single item and multiple items
     let cart;
     if (Array.isArray(items)) {
       // Multiple items
       cart = await cartService.addMultipleItemsToCart(userId, items);
     } else {
       // Single item (backward compatibility)
-      const { productId, quantity } = req.body;
-      cart = await cartService.addItemToCart(userId, productId, quantity);
+      cart = await cartService.addItemToCart(
+        userId,
+        productId,
+        quantity,
+        startDate,
+        endDate
+      );
     }
 
     res.status(200).json({
@@ -43,15 +48,19 @@ export const addToCart = asyncHandler(
   }
 );
 
-// ... keep the rest of your controllers unchanged ...
-
 export const updateCartItem = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = (req as AuthenticatedRequest).user._id.toString();
     const { productId } = req.params;
-    const { quantity } = req.body;
+    const { quantity, startDate, endDate } = req.body;
 
-    const cart = await cartService.updateCartItem(userId, productId, quantity);
+    const cart = await cartService.updateCartItem(
+      userId,
+      productId,
+      quantity,
+      startDate,
+      endDate
+    );
 
     res.status(200).json({
       status: "success",
@@ -61,7 +70,6 @@ export const updateCartItem = asyncHandler(
     });
   }
 );
-
 export const removeFromCart = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = (req as AuthenticatedRequest).user._id.toString();

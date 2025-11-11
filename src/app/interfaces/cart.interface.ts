@@ -5,6 +5,8 @@ export interface ICartItem {
   product: mongoose.Types.ObjectId;
   quantity: number;
   price: number;
+  startDate?: Date; // New field
+  endDate?: Date; // New field
 }
 
 export interface ICart {
@@ -16,10 +18,18 @@ export interface ICart {
   updatedAt?: Date;
 }
 
-// Add this interface for adding multiple items
+// Update request interfaces
 export interface IAddToCartRequest {
   items: Array<{
     productId: string;
     quantity: number;
+    startDate?: string; // ISO string
+    endDate?: string; // ISO string
   }>;
+}
+
+export interface IUpdateCartItemRequest {
+  quantity: number;
+  startDate?: string;
+  endDate?: string;
 }

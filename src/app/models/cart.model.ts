@@ -1,21 +1,9 @@
+// src/models/cart.model.ts
 import mongoose, { Document, Schema } from "mongoose";
 import { ICart, ICartItem } from "../interfaces/cart.interface";
 
 export interface ICartItemModel extends ICartItem, Document {}
 export interface ICartModel extends ICart, Document {}
-
-// Interface for populated product in cart items
-export interface IPopulatedCartItem {
-  product: {
-    _id: mongoose.Types.ObjectId;
-    name: string;
-    price: number;
-    stock: number;
-    // Add other product fields you need
-  };
-  quantity: number;
-  price: number;
-}
 
 const cartItemSchema: Schema = new Schema({
   product: {
@@ -32,6 +20,24 @@ const cartItemSchema: Schema = new Schema({
   price: {
     type: Number,
     required: true,
+  },
+  startDate: {
+    type: Date,
+    required: function (this: any) {
+      return this.endDate !== undefined;
+    },
+  },
+  endDate: {
+    type: Date,
+    required: function (this: any) {
+      return this.startDate !== undefined;
+    },
+    validate: {
+      validator: function (this: any, endDate: Date) {
+        return !this.startDate || endDate > this.startDate;
+      },
+      message: "End date must be after start date",
+    },
   },
 });
 
@@ -58,7 +64,7 @@ const cartSchema: Schema = new Schema(
   }
 );
 
-// Calculate totals before saving with proper TypeScript typing
+// Calculate totals before saving
 cartSchema.pre("save", function (this: ICartModel, next) {
   this.totalItems = this.items.reduce(
     (total: number, item: ICartItem) => total + item.quantity,
