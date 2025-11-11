@@ -21,9 +21,18 @@ export const getCart = asyncHandler(
 export const addToCart = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = (req as AuthenticatedRequest).user._id.toString();
-    const { productId, quantity } = req.body;
+    const { items } = req.body;
 
-    const cart = await cartService.addItemToCart(userId, productId, quantity);
+    // Support both single item and multiple items
+    let cart;
+    if (Array.isArray(items)) {
+      // Multiple items
+      cart = await cartService.addMultipleItemsToCart(userId, items);
+    } else {
+      // Single item (backward compatibility)
+      const { productId, quantity } = req.body;
+      cart = await cartService.addItemToCart(userId, productId, quantity);
+    }
 
     res.status(200).json({
       status: "success",
@@ -33,6 +42,8 @@ export const addToCart = asyncHandler(
     });
   }
 );
+
+// ... keep the rest of your controllers unchanged ...
 
 export const updateCartItem = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {

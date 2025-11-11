@@ -11,7 +11,7 @@ router.use(protectRoute);
 router
   .route("/")
   .get(cartController.getCart)
-  .post(cartController.addToCart)
+  .post(cartController.addToCart) // Now supports both single and multiple items
   .delete(cartController.clearCart);
 
 router

@@ -1,3 +1,4 @@
+// src/interfaces/cart.interface.ts
 import mongoose from "mongoose";
 
 export interface ICartItem {
@@ -13,4 +14,12 @@ export interface ICart {
   totalItems: number;
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+// Add this interface for adding multiple items
+export interface IAddToCartRequest {
+  items: Array<{
+    productId: string;
+    quantity: number;
+  }>;
 }
