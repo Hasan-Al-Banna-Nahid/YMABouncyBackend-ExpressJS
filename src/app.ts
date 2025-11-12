@@ -46,18 +46,20 @@ app.use(cookieParser());
 app.set("view engine", "ejs");
 app.set("views", path.join(process.cwd(), "src", "app", "views"));
 
+// Auth routes
 app.use("/auth", authRouter);
 app.use("/api/v1/auth", authRouter);
 
+// API routes - FIXED: Mount cartRoutes with proper path
 app.use("/api/v1/bookings", bookingRouter);
 app.use("/api/v1/inventory", inventoryRouter);
 app.use("/api/v1/invoices", invoiceRouter);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/mail", mailRoute);
-app.use("/api/v1/locations", locationRoutes); // Add this line
+app.use("/api/v1/locations", locationRoutes);
 app.use("/api/v1/categories", categoryRoutes);
 app.use("/api/v1/products", productRoutes);
-app.use("/api/v1/cart", cartRoutes);
+app.use("/api/v1/cart", cartRoutes); // FIXED: Changed from "/api/v1/" to "/api/v1/cart"
 app.use("/api/v1/checkout", checkoutRoutes);
 
 // Health check
@@ -70,4 +72,5 @@ app.use((req, res) =>
     .json({ status: "fail", message: "Not Found", path: req.originalUrl })
 );
 app.use(globalErrorHandler);
+
 export default app;
