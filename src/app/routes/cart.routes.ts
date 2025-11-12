@@ -16,7 +16,8 @@ router
 
 router
   .route("/:productId")
-  .patch(cartController.updateCartItem)
+  // .patch(cartController.updateCartItem)
   .delete(cartController.removeFromCart);
-
+router.patch("/items", cartController.updateCartItem); // For multiple items
+router.patch("/items/:productId", cartController.updateCartItem);
 export default router;

@@ -312,6 +312,136 @@ export const addItemToCart = async (
   return await cart.populate("items.product");
 };
 
+// Keep other functions (getCartByUserId, removeItemFromCart, clearCart) the same
+// src/services/cart.service.ts
+export const updateMultipleCartItems = async (
+  userId: string,
+  items: Array<{
+    productId: string;
+    quantity: number;
+    startDate?: string;
+    endDate?: string;
+  }>
+): Promise<ICartModel> => {
+  // Validate all product IDs first
+  const invalidProductIds = items.filter(
+    (item) => !Types.ObjectId.isValid(item.productId)
+  );
+
+  if (invalidProductIds.length > 0) {
+    throw new ApiError(
+      `Invalid product IDs: ${invalidProductIds
+        .map((item) => item.productId)
+        .join(", ")}`,
+      400
+    );
+  }
+
+  // Validate all items have required fields
+  for (const item of items) {
+    if (item.quantity < 1) {
+      throw new ApiError("Quantity must be at least 1", 400);
+    }
+
+    // Validate date ranges
+    if (item.startDate || item.endDate) {
+      if (!item.startDate || !item.endDate) {
+        throw new ApiError(
+          "Both startDate and endDate are required for booking items",
+          400
+        );
+      }
+
+      const startDate = new Date(item.startDate);
+      const endDate = new Date(item.endDate);
+
+      if (startDate >= endDate) {
+        throw new ApiError("End date must be after start date", 400);
+      }
+
+      if (startDate < new Date()) {
+        throw new ApiError("Start date cannot be in the past", 400);
+      }
+    }
+  }
+
+  // Convert productIds to ObjectId for query
+  const productIds = items.map((item) => new Types.ObjectId(item.productId));
+
+  // Validate all products exist and check stock
+  const products = await Product.find({ _id: { $in: productIds } });
+
+  // Check if all products exist
+  const foundProductIds = products.map((p) =>
+    (p._id as Types.ObjectId).toString()
+  );
+  const requestedProductIds = items.map((item) => item.productId);
+
+  const missingProducts = requestedProductIds.filter(
+    (id) => !foundProductIds.includes(id)
+  );
+
+  if (missingProducts.length > 0) {
+    throw new ApiError(
+      `Products not found: ${missingProducts.join(", ")}`,
+      404
+    );
+  }
+
+  // Create a product map for easier lookup
+  const productMap = new Map();
+  products.forEach((product) => {
+    productMap.set((product._id as Types.ObjectId).toString(), product);
+  });
+
+  // Check stock for each item
+  for (const item of items) {
+    const product = productMap.get(item.productId);
+    if (product.stock < item.quantity) {
+      throw new ApiError(
+        `Only ${product.stock} items available in stock for product ${product.name}`,
+        400
+      );
+    }
+  }
+
+  const cart = await Cart.findOne({ user: new Types.ObjectId(userId) });
+  if (!cart) {
+    throw new ApiError("Cart not found", 404);
+  }
+
+  // Update each item in the cart
+  for (const item of items) {
+    const itemIndex = cart.items.findIndex(
+      (cartItem) => cartItem.product.toString() === item.productId
+    );
+
+    if (itemIndex === -1) {
+      throw new ApiError(
+        `Item with productId ${item.productId} not found in cart`,
+        404
+      );
+    }
+
+    // Update quantity
+    cart.items[itemIndex].quantity = item.quantity;
+
+    // Update dates if provided
+    if (item.startDate && item.endDate) {
+      cart.items[itemIndex].startDate = new Date(item.startDate);
+      cart.items[itemIndex].endDate = new Date(item.endDate);
+    } else {
+      // Remove dates if not provided (optional, depending on your business logic)
+      cart.items[itemIndex].startDate = undefined;
+      cart.items[itemIndex].endDate = undefined;
+    }
+  }
+
+  await cart.save();
+  return await cart.populate("items.product");
+};
+
+// Keep the existing single item update function for backward compatibility
 export const updateCartItem = async (
   userId: string,
   productId: string,
@@ -373,10 +503,12 @@ export const updateCartItem = async (
   if (startDate && endDate) {
     cart.items[itemIndex].startDate = new Date(startDate);
     cart.items[itemIndex].endDate = new Date(endDate);
+  } else {
+    // Remove dates if not provided (optional)
+    cart.items[itemIndex].startDate = undefined;
+    cart.items[itemIndex].endDate = undefined;
   }
 
   await cart.save();
   return await cart.populate("items.product");
 };
-
-// Keep other functions (getCartByUserId, removeItemFromCart, clearCart) the same

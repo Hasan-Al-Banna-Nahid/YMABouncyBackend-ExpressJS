@@ -48,19 +48,30 @@ export const addToCart = asyncHandler(
   }
 );
 
+// src/controllers/cart.controller.ts
 export const updateCartItem = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = (req as AuthenticatedRequest).user._id.toString();
-    const { productId } = req.params;
-    const { quantity, startDate, endDate } = req.body;
+    const { items } = req.body;
 
-    const cart = await cartService.updateCartItem(
-      userId,
-      productId,
-      quantity,
-      startDate,
-      endDate
-    );
+    let cart;
+
+    if (Array.isArray(items)) {
+      // Multiple items update
+      cart = await cartService.updateMultipleCartItems(userId, items);
+    } else {
+      // Single item update (backward compatibility)
+      const { productId } = req.params;
+      const { quantity, startDate, endDate } = req.body;
+
+      cart = await cartService.updateCartItem(
+        userId,
+        productId,
+        quantity,
+        startDate,
+        endDate
+      );
+    }
 
     res.status(200).json({
       status: "success",
