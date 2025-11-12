@@ -22,6 +22,7 @@ const allowedOrigins = [
   "https://yma-bouncy-castle-frontend-rlrg.vercel.app",
   "http://localhost:5000",
   "https://yma-eight.vercel.app",
+  "https://yma-frontend.vercel.app",
 ];
 
 app.use(
