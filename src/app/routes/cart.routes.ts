@@ -17,7 +17,7 @@ router
   .delete(cartController.clearCart);
 
 // PATCH /api/v1/cart/items - Update multiple cart items
-router.patch("/items", cartController.updateCartItem);
+// router.patch("/items", cartController.updateCartItem);
 
 // DELETE /api/v1/cart/items/:productId - Remove specific item from cart
 router.delete("/items/:productId", cartController.removeFromCart);
