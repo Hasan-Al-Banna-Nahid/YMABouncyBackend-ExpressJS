@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(protectRoute);
 
 // GET /api/v1/cart - Get user's cart
-// POST /api/v1/cart - Add item to cart
+// POST /api/v1/cart - Add item to cart (single or multiple)
 // DELETE /api/v1/cart - Clear entire cart
 router
   .route("/")
@@ -16,13 +16,10 @@ router
   .post(cartController.addToCart)
   .delete(cartController.clearCart);
 
-// PATCH /api/v1/cart/items - Update multiple cart items
-// router.patch("/items", cartController.updateCartItem);
+// PATCH /api/v1/cart/items - Update single OR multiple cart items
+router.patch("/items", cartController.updateCartItems);
 
 // DELETE /api/v1/cart/items/:productId - Remove specific item from cart
 router.delete("/items/:productId", cartController.removeFromCart);
-
-// PATCH /api/v1/cart/items/:productId - Update specific cart item
-router.patch("/items/:productId", cartController.updateCartItem);
 
 export default router;
