@@ -6,13 +6,43 @@ import { Types, ClientSession } from "mongoose";
 
 interface CreateOrderData {
   shippingAddress: {
+    // Personal Information
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+
+    // Delivery Information
     street: string;
     city: string;
     state: string;
     country: string;
     zipCode: string;
+    apartment?: string;
+
+    // Additional Fields
+    companyName?: string;
+    locationAccessibility?: string;
+    deliveryTime?: string;
+    collectionTime?: string;
+    floorType?: string;
+    userType?: string;
+    keepOvernight?: boolean;
+    hireOccasion?: string;
+    notes?: string;
+
+    // Billing Address
+    differentBillingAddress?: boolean;
+    billingFirstName?: string;
+    billingLastName?: string;
+    billingStreet?: string;
+    billingCity?: string;
+    billingState?: string;
+    billingZipCode?: string;
+    billingCompanyName?: string;
   };
   paymentMethod: "cash_on_delivery" | "online";
+  termsAccepted: boolean;
 }
 
 export const createOrderFromCart = async (
@@ -26,7 +56,65 @@ export const createOrderFromCart = async (
     console.log("🔍 [DEBUG] Starting checkout process...");
     console.log("👤 User ID:", userId);
 
-    // Step 1: Get user's cart with detailed debugging
+    // Validate terms acceptance
+    if (!orderData.termsAccepted) {
+      throw new ApiError("You must accept the terms and conditions", 400);
+    }
+
+    // Validate required shipping address fields
+    const requiredAddressFields = [
+      "firstName",
+      "lastName",
+      "email",
+      "phone",
+      "street",
+      "city",
+      "state",
+      "country",
+      "zipCode",
+    ];
+
+    const missingFields = requiredAddressFields.filter(
+      (field) =>
+        !orderData.shippingAddress[
+          field as keyof typeof orderData.shippingAddress
+        ]
+    );
+
+    if (missingFields.length > 0) {
+      throw new ApiError(
+        `Missing required fields: ${missingFields.join(", ")}`,
+        400
+      );
+    }
+
+    // Validate billing address if different billing address is selected
+    if (orderData.shippingAddress.differentBillingAddress) {
+      const requiredBillingFields = [
+        "billingFirstName",
+        "billingLastName",
+        "billingStreet",
+        "billingCity",
+        "billingState",
+        "billingZipCode",
+      ];
+
+      const missingBillingFields = requiredBillingFields.filter(
+        (field) =>
+          !orderData.shippingAddress[
+            field as keyof typeof orderData.shippingAddress
+          ]
+      );
+
+      if (missingBillingFields.length > 0) {
+        throw new ApiError(
+          `Missing billing address fields: ${missingBillingFields.join(", ")}`,
+          400
+        );
+      }
+    }
+
+    // Step 1: Get user's cart
     const cart = await Cart.findOne({
       user: new Types.ObjectId(userId),
     }).session(session);
@@ -38,27 +126,18 @@ export const createOrderFromCart = async (
 
     console.log("✅ [DEBUG] Cart found - ID:", cart._id);
     console.log("📦 [DEBUG] Cart items count:", cart.items.length);
-    console.log("💰 [DEBUG] Cart total price:", cart.totalPrice);
-    console.log("🛒 [DEBUG] Cart total items:", cart.totalItems);
 
     if (cart.items.length === 0) {
       console.log("❌ [DEBUG] Cart is empty");
       throw new ApiError("Cart is empty", 400);
     }
 
-    // Step 2: Debug each cart item in detail
+    // Step 2: Process cart items
     console.log("\n🔎 [DEBUG] Analyzing cart items:");
     const orderItems = [];
 
     for (let i = 0; i < cart.items.length; i++) {
       const cartItem = cart.items[i];
-      console.log(`\n📋 [DEBUG] Item ${i + 1}:`, {
-        rawProductRef: cartItem.product,
-        productType: typeof cartItem.product,
-        productIsObjectId: cartItem.product instanceof Types.ObjectId,
-        quantity: cartItem.quantity,
-        price: cartItem.price,
-      });
 
       // Check if product reference exists
       if (!cartItem.product) {
@@ -89,20 +168,6 @@ export const createOrderFromCart = async (
 
       if (!product) {
         console.log("❌ [DEBUG] PRODUCT NOT FOUND IN DATABASE");
-        console.log("❌ [DEBUG] Product ID that was not found:", productId);
-
-        // Debug: Check what products actually exist
-        const allProductsCount = await Product.countDocuments({}).session(
-          session
-        );
-        console.log("📊 [DEBUG] Total products in database:", allProductsCount);
-
-        const sampleProducts = await Product.find({}).session(session).limit(3);
-        console.log("📋 [DEBUG] Sample products (first 3):");
-        sampleProducts.forEach((p, index) => {
-          console.log(`   ${index + 1}. ${p._id} - ${p.name}`);
-        });
-
         throw new ApiError(
           `Product with ID ${productId} not found in database. The product may have been deleted.`,
           404
@@ -168,6 +233,7 @@ export const createOrderFromCart = async (
           totalAmount: cart.totalPrice,
           paymentMethod: orderData.paymentMethod,
           shippingAddress: orderData.shippingAddress,
+          termsAccepted: orderData.termsAccepted,
         },
       ],
       { session }
@@ -178,6 +244,8 @@ export const createOrderFromCart = async (
     // Step 8: Clear cart
     const itemsCleared = cart.items.length;
     cart.items = [];
+    cart.totalPrice = 0;
+    cart.totalItems = 0;
     await cart.save({ session });
     console.log("✅ [DEBUG] Cart cleared - removed", itemsCleared, "items");
 

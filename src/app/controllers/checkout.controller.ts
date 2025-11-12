@@ -12,7 +12,11 @@ export const createOrder = asyncHandler(
     console.log("👤 User ID from auth:", userId);
     console.log("📦 Request body:", JSON.stringify(req.body, null, 2));
 
-    const { shippingAddress, paymentMethod = "cash_on_delivery" } = req.body;
+    const {
+      shippingAddress,
+      paymentMethod = "cash_on_delivery",
+      termsAccepted,
+    } = req.body;
 
     // Validate required fields
     if (!shippingAddress) {
@@ -20,13 +24,28 @@ export const createOrder = asyncHandler(
       throw new ApiError("Shipping address is required", 400);
     }
 
+    if (termsAccepted === undefined) {
+      console.log("❌ [CONTROLLER] Terms acceptance not specified");
+      throw new ApiError("You must accept the terms and conditions", 400);
+    }
+
+    if (!termsAccepted) {
+      console.log("❌ [CONTROLLER] Terms not accepted");
+      throw new ApiError("You must accept the terms and conditions", 400);
+    }
+
     const requiredAddressFields = [
+      "firstName",
+      "lastName",
+      "email",
+      "phone",
       "street",
       "city",
       "state",
       "country",
       "zipCode",
     ];
+
     const missingFields = requiredAddressFields.filter(
       (field) => !shippingAddress[field]
     );
@@ -37,6 +56,33 @@ export const createOrder = asyncHandler(
         `Missing shipping address fields: ${missingFields.join(", ")}`,
         400
       );
+    }
+
+    // Validate billing address if different billing address is selected
+    if (shippingAddress.differentBillingAddress) {
+      const requiredBillingFields = [
+        "billingFirstName",
+        "billingLastName",
+        "billingStreet",
+        "billingCity",
+        "billingState",
+        "billingZipCode",
+      ];
+
+      const missingBillingFields = requiredBillingFields.filter(
+        (field) => !shippingAddress[field]
+      );
+
+      if (missingBillingFields.length > 0) {
+        console.log(
+          "❌ [CONTROLLER] Missing billing address fields:",
+          missingBillingFields
+        );
+        throw new ApiError(
+          `Missing billing address fields: ${missingBillingFields.join(", ")}`,
+          400
+        );
+      }
     }
 
     if (!["cash_on_delivery", "online"].includes(paymentMethod)) {
@@ -52,6 +98,7 @@ export const createOrder = asyncHandler(
     const order = await checkoutService.createOrderFromCart(userId, {
       shippingAddress,
       paymentMethod,
+      termsAccepted,
     });
 
     console.log("✅ [CONTROLLER] Order created successfully");
